@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../contexts/ProfileContext';
-import { Button, Input, Select, Card } from '../components';
+import { Input, Select } from '../components';
 
 export const EligibilityProfile = () => {
   const navigate = useNavigate();
@@ -31,10 +31,7 @@ export const EligibilityProfile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
@@ -51,28 +48,21 @@ export const EligibilityProfile = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Eligibility Profile</h1>
-          <p className="text-lg text-gray-600">
-            We only ask for information needed to find relevant schemes.
+    <div className="min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e] px-6 sm:px-12 lg:px-20 xl:px-28 py-12">
+      <div className="w-full">
+        <div className="mb-10">
+          <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Demographics</span>
+          <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1">Eligibility Criteria Profile</h1>
+          <p className="text-sm sm:text-base text-[#14341e]/70 font-light mt-1">
+            Data provided is evaluated on-device to match statutory rules without storing unneeded personal attributes.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Information */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Basic Information</h2>
+          <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 space-y-6">
+            <h2 className="text-base font-normal text-[#14341e]">Basic Information</h2>
             <div className="grid md:grid-cols-2 gap-4">
-              <Input
-                label="Age"
-                type="number"
-                name="age"
-                value={formData.age}
-                onChange={handleChange}
-                placeholder="Enter your age"
-              />
+              <Input label="Age" type="number" name="age" value={formData.age} onChange={handleChange} placeholder="Years" />
               <Select
                 label="Gender"
                 name="gender"
@@ -97,10 +87,10 @@ export const EligibilityProfile = () => {
                   { label: 'Delhi', value: 'delhi' },
                   { label: 'Tamil Nadu', value: 'tamil-nadu' }
                 ]}
-                placeholder="Select your state"
+                placeholder="Select residence state"
               />
               <Select
-                label="Urban or Rural"
+                label="Region Classification"
                 name="urban"
                 value={formData.urban}
                 onChange={handleChange}
@@ -108,67 +98,48 @@ export const EligibilityProfile = () => {
                   { label: 'Urban', value: 'urban' },
                   { label: 'Rural', value: 'rural' }
                 ]}
-                placeholder="Select area type"
+                placeholder="Select settlement type"
               />
             </div>
-          </Card>
+          </div>
 
-          {/* Social Category */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Social Category</h2>
-            <Select
-              label="Category"
-              name="socialCategory"
-              value={formData.socialCategory}
-              onChange={handleChange}
-              options={[
-                { label: 'General', value: 'general' },
-                { label: 'OBC', value: 'obc' },
-                { label: 'SC', value: 'sc' },
-                { label: 'ST', value: 'st' },
-                { label: 'Prefer not to say', value: 'prefer-not' }
-              ]}
-              placeholder="Select category"
-            />
-          </Card>
-
-          {/* Financial Information */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Financial Information</h2>
+          <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 space-y-6">
+            <h2 className="text-base font-normal text-[#14341e]">Category & Economic Status</h2>
             <div className="grid md:grid-cols-2 gap-4">
+              <Select
+                label="Category"
+                name="socialCategory"
+                value={formData.socialCategory}
+                onChange={handleChange}
+                options={[
+                  { label: 'General', value: 'general' },
+                  { label: 'OBC', value: 'obc' },
+                  { label: 'SC', value: 'sc' },
+                  { label: 'ST', value: 'st' },
+                  { label: 'Prefer not to say', value: 'prefer-not' }
+                ]}
+                placeholder="Select category"
+              />
               <Select
                 label="Household Annual Income"
                 name="income"
                 value={formData.income}
                 onChange={handleChange}
                 options={[
-                  { label: 'Below ₹1 lakh', value: 'below-1L' },
-                  { label: '₹1–2.5 lakh', value: '1L-2.5L' },
-                  { label: '₹2.5–5 lakh', value: '2.5L-5L' },
-                  { label: '₹5–10 lakh', value: '5L-10L' },
-                  { label: 'Above ₹10 lakh', value: 'above-10L' }
+                  { label: 'Below 1 Lakh', value: 'below-1L' },
+                  { label: '1 - 2.5 Lakh', value: '1L-2.5L' },
+                  { label: '2.5 - 5 Lakh', value: '2.5L-5L' },
+                  { label: '5 - 10 Lakh', value: '5L-10L' },
+                  { label: 'Above 10 Lakh', value: 'above-10L' }
                 ]}
-                placeholder="Select income range"
-              />
-              <Select
-                label="BPL Status"
-                name="bpl"
-                value={formData.bpl}
-                onChange={handleChange}
-                options={[
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' },
-                  { label: 'Not sure', value: 'not-sure' }
-                ]}
-                placeholder="BPL / Priority household?"
+                placeholder="Select income bracket"
               />
             </div>
-          </Card>
+          </div>
 
-          {/* Employment */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Employment</h2>
-            <div className="grid md:grid-cols-2 gap-4">
+          <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 space-y-6">
+            <h2 className="text-base font-normal text-[#14341e]">Occupation & Dependents</h2>
+            <div className="grid md:grid-cols-3 gap-4">
               <Select
                 label="Occupation"
                 name="occupation"
@@ -180,102 +151,30 @@ export const EligibilityProfile = () => {
                   { label: 'Salaried', value: 'salaried' },
                   { label: 'Self-employed', value: 'self-employed' },
                   { label: 'Unemployed', value: 'unemployed' },
-                  { label: 'Homemaker', value: 'homemaker' },
-                  { label: 'Other', value: 'other' }
+                  { label: 'Homemaker', value: 'homemaker' }
                 ]}
-                placeholder="Select occupation"
+                placeholder="Select work status"
               />
-              <Select
-                label="Currently Looking for Work?"
-                name="lookingForWork"
-                value={formData.lookingForWork}
-                onChange={handleChange}
-                options={[
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' }
-                ]}
-                placeholder="Looking for work?"
-              />
+              <Input label="Dependents" type="number" name="dependents" value={formData.dependents} onChange={handleChange} placeholder="0" />
+              <Input label="Children" type="number" name="children" value={formData.children} onChange={handleChange} placeholder="0" />
             </div>
-          </Card>
+          </div>
 
-          {/* Family */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Family Information</h2>
-            <div className="grid md:grid-cols-3 gap-4">
-              <Input
-                label="Number of Dependents"
-                type="number"
-                name="dependents"
-                value={formData.dependents}
-                onChange={handleChange}
-                placeholder="0"
-              />
-              <Input
-                label="Number of Children"
-                type="number"
-                name="children"
-                value={formData.children}
-                onChange={handleChange}
-                placeholder="0"
-              />
-              <Input
-                label="Senior Citizens (60+)"
-                type="number"
-                name="seniorCitizens"
-                value={formData.seniorCitizens}
-                onChange={handleChange}
-                placeholder="0"
-              />
-            </div>
-          </Card>
-
-          {/* Housing */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Housing</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Select
-                label="Own a House?"
-                name="ownHouse"
-                value={formData.ownHouse}
-                onChange={handleChange}
-                options={[
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' }
-                ]}
-                placeholder="Own a house?"
-              />
-              <Select
-                label="Housing Condition"
-                name="housingCondition"
-                value={formData.housingCondition}
-                onChange={handleChange}
-                options={[
-                  { label: 'Pucca', value: 'pucca' },
-                  { label: 'Semi-pucca', value: 'semi-pucca' },
-                  { label: 'Kutcha', value: 'kutcha' }
-                ]}
-                placeholder="Housing condition"
-              />
-            </div>
-          </Card>
-
-          {/* Actions */}
-          <div className="flex gap-4">
-            <Button
-              variant="secondary"
-              onClick={() => navigate('/app/life-events')}
+          <div className="flex items-center justify-between gap-4 pt-4">
+            <button
               type="button"
+              onClick={() => navigate('/app/life-events')}
+              className="px-6 py-2.5 rounded-full bg-white/60 hover:bg-white text-xs font-light text-[#14341e] border border-[#a9c7b1]/50 transition"
             >
               Back
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              loading={loading}
-              className="ml-auto"
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-7 py-2.5 rounded-full bg-[#177e4f] text-white text-xs font-normal hover:bg-[#14341e] transition shadow-sm"
             >
-              Find My Benefits
-            </Button>
+              {loading ? 'Evaluating...' : 'Find My Benefits'}
+            </button>
           </div>
         </form>
       </div>

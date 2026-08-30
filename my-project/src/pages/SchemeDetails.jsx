@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Navbar, Sidebar, LoadingState, Button, Card, ProgressBar } from '../components';
+import { Navbar, Sidebar, LoadingState, ProgressBar } from '../components';
 import { schemeService } from '../services/schemeService';
 import { documentService } from '../services/documentService';
 import { applicationService } from '../services/applicationService';
 import { formatCurrency, formatDate } from '../utils/formatters';
-import { ArrowLeft, ExternalLink, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
 
 export const SchemeDetails = () => {
   const { id } = useParams();
@@ -14,11 +14,9 @@ export const SchemeDetails = () => {
   const [scheme, setScheme] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [eligibility, setEligibility] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [documentReadiness, setDocumentReadiness] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
-  const [showApplicationModal, setShowApplicationModal] = useState(false);
 
   useEffect(() => {
     loadScheme();
@@ -29,16 +27,10 @@ export const SchemeDetails = () => {
     try {
       const res = await schemeService.getSchemeById(id);
       setScheme(res.data);
-      
-      // Check if saved
       const saved = await schemeService.isSchemeSaved(parseInt(id));
       setIsSaved(saved);
-
-      // Load documents for this scheme
       const docsRes = await documentService.getSchemeDocuments(res.data);
       setDocuments(docsRes.data);
-
-      // Calculate document readiness
       const ready = docsRes.data.filter(d => d.ready).length;
       const readiness = docsRes.data.length > 0 ? (ready / docsRes.data.length) * 100 : 0;
       setDocumentReadiness(readiness);
@@ -74,12 +66,12 @@ export const SchemeDetails = () => {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex min-h-screen w-full bg-[#c9f3ce]">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <div className="flex-1">
-            <LoadingState />
+          <div className="flex-1 flex items-center justify-center">
+            <LoadingState message="Extracting departmental directive terms..." />
           </div>
         </div>
       </div>
@@ -88,16 +80,19 @@ export const SchemeDetails = () => {
 
   if (error || !scheme) {
     return (
-      <div className="flex">
+      <div className="flex min-h-screen w-full bg-[#c9f3ce]">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-red-600 font-semibold">{error || 'Scheme not found'}</p>
-              <Button onClick={() => navigate('/app/dashboard')} className="mt-4">
+          <div className="flex-1 flex items-center justify-center p-6 text-center">
+            <div className="rounded-3xl bg-white/40 backdrop-blur-xl border border-white/70 p-8 max-w-sm">
+              <p className="text-xs text-rose-800 mb-4">{error || 'Scheme directive not localized'}</p>
+              <button
+                onClick={() => navigate('/app/dashboard')}
+                className="px-5 py-2 rounded-full bg-[#177e4f] text-white text-xs transition"
+              >
                 Back to Dashboard
-              </Button>
+              </button>
             </div>
           </div>
         </div>
@@ -106,141 +101,99 @@ export const SchemeDetails = () => {
   }
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-
-        <main className="flex-1 bg-brand-bg overflow-auto">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            {/* Back Button */}
+        <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
+          <div className="w-full">
             <button
               onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-brand-blue hover:text-brand-navy font-medium mb-8"
+              className="inline-flex items-center gap-2 text-xs font-light text-[#177e4f] hover:text-[#14341e] transition mb-8"
             >
-              <ArrowLeft size={20} />
-              Back
+              <ArrowLeft size={15} />
+              <span>Back to Directory</span>
             </button>
 
-            {/* Header */}
-            <div className="mb-8">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">{scheme.name}</h1>
-                  <p className="text-gray-600 mt-2">
-                    {scheme.ministry} • {scheme.state}
-                  </p>
-                </div>
-                <Button
-                  variant={isSaved ? 'danger' : 'secondary'}
-                  onClick={handleSave}
-                >
-                  {isSaved ? 'Remove' : 'Save'}
-                </Button>
-              </div>
-            </div>
-
-            {/* Benefit Card */}
-            <Card className="bg-blue-50 border-blue-200 mb-8">
+            {/* Scheme Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-8">
               <div>
-                <p className="text-sm text-gray-600">Potential Benefit</p>
-                <p className="text-3xl font-bold text-brand-blue mt-2">
-                  {formatCurrency(scheme.benefit?.amount)}
-                  {scheme.benefit?.frequency !== 'one-time' && (
-                    <span className="text-base font-normal text-gray-600 ml-2">
-                      / {scheme.benefit?.frequency}
-                    </span>
-                  )}
+                <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight">{scheme.name}</h1>
+                <p className="text-xs sm:text-sm text-[#14341e]/60 font-light mt-1">
+                  {scheme.ministry} • {scheme.state}
                 </p>
               </div>
-            </Card>
+              <button
+                onClick={handleSave}
+                className={`px-5 py-2 rounded-full text-xs transition self-start ${
+                  isSaved
+                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                    : 'bg-white/60 text-[#14341e] border border-[#a9c7b1]/40 hover:bg-white'
+                }`}
+              >
+                {isSaved ? 'Remove Bookmark' : 'Bookmark Scheme'}
+              </button>
+            </div>
 
-            {/* Document Readiness */}
-            <Card className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Application Readiness</h2>
-              <ProgressBar value={documentReadiness} />
-              <p className="text-sm text-gray-600 mt-2">
-                {documents.filter(d => d.ready).length} of {documents.length} documents ready
+            {/* Benefit Value Pill */}
+            <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
+              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Entitlement Calculation</span>
+              <p className="text-3xl sm:text-4xl font-light text-[#14341e] mt-1">
+                {formatCurrency(scheme.benefit?.amount)}
+                {scheme.benefit?.frequency !== 'one-time' && (
+                  <span className="text-sm font-light text-[#14341e]/60 ml-2">/ {scheme.benefit?.frequency}</span>
+                )}
               </p>
-            </Card>
+            </div>
 
-            {/* Description */}
-            <Card className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">About</h2>
-              <p className="text-gray-700 text-base leading-relaxed">{scheme.description}</p>
-            </Card>
+            {/* Document Checklist */}
+            <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-normal text-[#14341e]">Application Readiness Status</h2>
+                <span className="text-xs font-mono text-[#177e4f]">{documents.filter(d => d.ready).length} / {documents.length} verified</span>
+              </div>
+              <ProgressBar value={documentReadiness} />
+            </div>
 
-            {/* Eligibility */}
-            <Card className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Eligibility Requirements</h2>
+            {/* Scheme Summary */}
+            <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
+              <h2 className="text-sm font-normal text-[#14341e] mb-2">Scope & Objectives</h2>
+              <p className="text-xs sm:text-sm text-[#14341e]/75 font-light leading-relaxed">{scheme.description}</p>
+            </div>
+
+            {/* Eligibility Requirements */}
+            <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
+              <h2 className="text-sm font-normal text-[#14341e] mb-4">Statutory Criteria</h2>
               <div className="space-y-3">
                 {scheme.eligibilityRules?.map((rule, idx) => (
                   <div key={idx} className="flex items-start gap-3">
-                    <CheckCircle2 size={20} className="text-green-600 mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 size={16} className="text-[#177e4f] mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-gray-900 capitalize">
+                      <p className="text-xs sm:text-sm font-normal text-[#14341e] capitalize">
                         {rule.field.replace(/([A-Z])/g, ' $1')}
                       </p>
-                      <p className="text-sm text-gray-600">
-                        Must be {rule.operator} {rule.value}
-                      </p>
+                      <p className="text-xs text-[#14341e]/50 font-light">Condition: {rule.operator} {rule.value}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
 
-            {/* Documents */}
-            <Card className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Required Documents</h2>
-              <div className="space-y-2">
-                {scheme.documents?.map((doc, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <FileText size={20} className="text-gray-600" />
-                    <span className="text-gray-900">{doc}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Application Process */}
-            <Card className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Application Process</h2>
-              <ol className="space-y-3">
-                {scheme.applicationSteps?.map((step, idx) => (
-                  <li key={idx} className="flex gap-3">
-                    <span className="font-bold text-brand-blue">{idx + 1}.</span>
-                    <span className="text-gray-900">{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </Card>
-
-            {/* Important Info */}
-            <Card className="bg-amber-50 border-amber-200 mb-8">
-              <h2 className="font-bold text-gray-900 mb-2">Important Information</h2>
-              <ul className="text-sm text-gray-700 space-y-2">
-                <li>• Application Mode: {scheme.applicationMode}</li>
-                <li>• Deadline: {formatDate(scheme.deadline)}</li>
-                <li>• Last Verified: {formatDate(scheme.lastVerified)}</li>
-                <li>• Official Source: {scheme.source}</li>
-              </ul>
-            </Card>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button onClick={handleApply} fullWidth className="sm:w-auto">
-                Open Official Application
-                <ExternalLink size={18} />
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => navigate('/app/documents')}
-                fullWidth
-                className="sm:w-auto"
+            {/* Action Bar */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+              <button
+                onClick={handleApply}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 rounded-full bg-[#177e4f] text-white text-xs font-normal hover:bg-[#14341e] transition shadow-sm"
               >
-                View Documents
-              </Button>
+                <span>Proceed to Department Desk</span>
+                <ExternalLink size={14} className="text-[#4ae278]" />
+              </button>
+              <button
+                onClick={() => navigate('/app/documents')}
+                className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/60 hover:bg-white text-xs font-light text-[#14341e] border border-[#a9c7b1]/40 transition"
+              >
+                Inspect Proofs
+              </button>
             </div>
           </div>
         </main>

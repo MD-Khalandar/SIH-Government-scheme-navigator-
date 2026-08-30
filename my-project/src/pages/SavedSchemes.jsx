@@ -35,25 +35,29 @@ export const SavedSchemes = () => {
   };
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Saved Schemes" />
-
-        <main className="flex-1 bg-brand-bg overflow-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Saved Schemes</h1>
+        <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
+          <div className="w-full">
+            <div className="mb-10">
+              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Bookmarks</span>
+              <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1">Bookmarked Directives</h1>
+            </div>
 
             {schemes.length === 0 ? (
-              <EmptyState
-                icon={Bookmark}
-                title="No saved schemes"
-                description="Save schemes to track them later"
-                action={() => navigate('/app/my-benefits')}
-                actionLabel="Browse Schemes"
-              />
+              <div className="rounded-3xl bg-white/40 backdrop-blur-xl border border-white/70 p-12 text-center">
+                <EmptyState
+                  icon={Bookmark}
+                  title="No schemes pinned"
+                  description="Save welfare policies from search results to monitor deadlines"
+                  action={() => navigate('/app/my-benefits')}
+                  actionLabel="Browse Schemes"
+                />
+              </div>
             ) : (
-              <div className="grid gap-6">
+              <div className="grid gap-5">
                 {schemes.map(scheme => (
                   <SchemeCard
                     key={scheme.id}

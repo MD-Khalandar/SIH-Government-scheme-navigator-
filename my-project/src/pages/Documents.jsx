@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, Sidebar, Card, Button, ProgressBar, EmptyState } from '../components';
 import { documentService } from '../services/documentService';
-import { FileText } from 'lucide-react';
+import { FileText, CheckCircle2 } from 'lucide-react';
 
 export const Documents = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -37,56 +37,58 @@ export const Documents = () => {
   const readiness = documents.length > 0 ? (readyCount / documents.length) * 100 : 0;
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Documents" />
-
-        <main className="flex-1 bg-brand-bg overflow-auto">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="mb-12">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">Your Document Checklist</h1>
+        <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
+          <div className="w-full">
+            <div className="mb-10">
+              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Verification</span>
+              <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1 mb-6">Document Checklist</h1>
               
-              <Card className="bg-blue-50 border-blue-200">
-                <p className="font-semibold text-gray-900 mb-3">Document Readiness</p>
+              <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-normal text-[#14341e]">Document Readiness</p>
+                  <span className="text-xs font-mono text-[#177e4f]">{readyCount} of {documents.length} verified</span>
+                </div>
                 <ProgressBar value={readiness} />
-                <p className="text-sm text-gray-600 mt-2">
-                  {readyCount} of {documents.length} documents ready
-                </p>
-              </Card>
+              </div>
             </div>
 
             {documents.length === 0 ? (
-              <EmptyState
-                icon={FileText}
-                title="No documents added"
-                description="Documents needed for schemes will appear here"
-              />
+              <div className="rounded-3xl bg-white/40 backdrop-blur-xl border border-white/70 p-12 text-center">
+                <EmptyState
+                  icon={FileText}
+                  title="No documents required"
+                  description="Documents requested by selected schemes will populate here automatically"
+                />
+              </div>
             ) : (
               <div className="grid gap-4">
                 {documents.map(doc => (
-                  <Card key={doc.id}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <FileText size={24} className="text-brand-blue" />
-                        <div>
-                          <p className="font-semibold text-gray-900">{doc.name}</p>
-                          <p className="text-sm text-gray-600">
-                            {doc.ready ? '✓ Ready' : 'Not ready'}
-                          </p>
-                        </div>
+                  <div key={doc.id} className="rounded-2xl bg-white/50 backdrop-blur-md border border-white/70 p-5 flex items-center justify-between transition hover:bg-white/70">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-[#177e4f]/10 text-[#177e4f] flex items-center justify-center">
+                        <FileText size={18} strokeWidth={1.5} />
                       </div>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={doc.ready}
-                          onChange={() => handleToggleDocument(doc.id)}
-                          className="w-5 h-5 rounded"
-                        />
-                        <span className="text-sm text-gray-700">Mark as ready</span>
-                      </label>
+                      <div>
+                        <p className="text-sm font-normal text-[#14341e]">{doc.name}</p>
+                        <p className="text-xs text-[#14341e]/50 font-light">
+                          {doc.ready ? 'Marked Ready' : 'Pending Verification'}
+                        </p>
+                      </div>
                     </div>
-                  </Card>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={doc.ready}
+                        onChange={() => handleToggleDocument(doc.id)}
+                        className="w-4 h-4 rounded text-[#177e4f] focus:ring-[#177e4f] border-[#a9c7b1]"
+                      />
+                      <span className="text-xs font-light text-[#14341e]/70">Ready</span>
+                    </label>
+                  </div>
                 ))}
               </div>
             )}
