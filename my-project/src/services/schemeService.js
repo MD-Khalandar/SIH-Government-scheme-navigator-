@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { db, hasFirebaseConfig } from '../../firebase';
 import { mockSchemes, demoSchemes } from '../data/mockSchemes';
 import {
@@ -9,6 +10,18 @@ import {
   query,
   where,
   deleteDoc
+=======
+import { db } from '../../firebase';
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  query, 
+  where, 
+  deleteDoc 
+>>>>>>> b56d7e6ad83957ac5c6c46c6aa7fac28726adae3
 } from 'firebase/firestore';
 
 const fallbackSchemes = Array.isArray(mockSchemes) && mockSchemes.length > 0
