@@ -1,122 +1,150 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProfileProvider } from './contexts/ProfileContext';
+import { ProtectedRoute } from './components';
+import {
+  Landing,
+  Login,
+  Register,
+  ForgotPassword,
+  OTPVerification,
+  Onboarding,
+  LifeEvents,
+  EligibilityProfile,
+  Dashboard,
+  MyBenefits,
+  SchemeDetails,
+  FindBenefits,
+  Documents,
+  Applications,
+  SavedSchemes,
+  Help,
+  Profile,
+  NotFound
+} from './pages';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Router>
+      <AuthProvider>
+        <ProfileProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/verify-otp" element={<OTPVerification />} />
 
-      <div className="ticks"></div>
+            {/* Onboarding Routes */}
+            <Route
+              path="/app/onboarding"
+              element={
+                <ProtectedRoute>
+                  <Onboarding />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/life-events"
+              element={
+                <ProtectedRoute>
+                  <LifeEvents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/eligibility-profile"
+              element={
+                <ProtectedRoute>
+                  <EligibilityProfile />
+                </ProtectedRoute>
+              }
+            />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+            {/* App Routes */}
+            <Route
+              path="/app/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/my-benefits"
+              element={
+                <ProtectedRoute>
+                  <MyBenefits />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/schemes/:id"
+              element={
+                <ProtectedRoute>
+                  <SchemeDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/find-benefits"
+              element={
+                <ProtectedRoute>
+                  <FindBenefits />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/documents"
+              element={
+                <ProtectedRoute>
+                  <Documents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/applications"
+              element={
+                <ProtectedRoute>
+                  <Applications />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/saved"
+              element={
+                <ProtectedRoute>
+                  <SavedSchemes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/help"
+              element={
+                <ProtectedRoute>
+                  <Help />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/app/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+            {/* Catch all - 404 */}
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/404" replace />} />
+          </Routes>
+        </ProfileProvider>
+      </AuthProvider>
+    </Router>
+  );
 }
 
 export default App
