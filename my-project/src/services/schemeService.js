@@ -1,76 +1,119 @@
-import { db } from '../../firebase';
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc, 
-  addDoc, 
-  query, 
-  where, 
-  deleteDoc 
+import { db, hasFirebaseConfig } from '../../firebase';
+import { mockSchemes, demoSchemes } from '../data/mockSchemes';
+import {
+  collection,
+  getDocs,
+  getDoc,
+  doc,
+  addDoc,
+  query,
+  where,
+  deleteDoc
 } from 'firebase/firestore';
+
+const fallbackSchemes = Array.isArray(mockSchemes) && mockSchemes.length > 0
+  ? mockSchemes
+  : Array.isArray(demoSchemes) && demoSchemes.length > 0
+    ? demoSchemes
+    : [];
+
+const getSchemeCollection = async () => {
+  if (!db || !hasFirebaseConfig) {
+    return { success: true, data: fallbackSchemes, source: 'fallback' };
+  }
+
+  try {
+    const querySnapshot = await getDocs(collection(db, 'schemes'));
+    const schemes = querySnapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+
+    if (!schemes.length) {
+      return { success: true, data: fallbackSchemes, source: 'fallback-empty' };
+    }
+
+    return { success: true, data: schemes, source: 'firestore' };
+  } catch (error) {
+    console.error('Error fetching schemes:', error);
+    return { success: true, data: fallbackSchemes, source: 'fallback-error', error: error.message };
+  }
+};
 
 export const schemeService = {
   getSchemes: async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, "schemes"));
-      const schemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return { success: true, data: schemes };
-    } catch (error) {
-      console.error("Error fetching schemes:", error);
-      return { success: false, data: [], error: error.message };
-    }
+    return getSchemeCollection();
   },
 
   getSchemeById: async (id) => {
     try {
-      const docRef = doc(db, "schemes", id);
+      const schemeList = (await getSchemeCollection()).data;
+      const fallbackMatch = schemeList.find((scheme) => String(scheme.id) === String(id));
+
+      if (fallbackMatch) {
+        return { success: true, data: fallbackMatch };
+      }
+
+      if (!db || !hasFirebaseConfig) {
+        throw new Error('Scheme not found');
+      }
+
+      const docRef = doc(db, 'schemes', id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
       }
-      throw new Error("Scheme not found");
+      throw new Error('Scheme not found');
     } catch (error) {
-      console.error("Error fetching scheme details:", error);
+      console.error('Error fetching scheme details:', error);
       return { success: false, error: error.message };
     }
   },
 
   getEligibleSchemes: async (userProfile) => {
     try {
-      const querySnapshot = await getDocs(collection(db, "schemes"));
-      const allSchemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const { data: allSchemes } = await getSchemeCollection();
 
-      const eligible = allSchemes.filter(scheme => {
+      const eligible = allSchemes.filter((scheme) => {
         if (scheme.minAge && userProfile.age < scheme.minAge) return false;
         if (scheme.maxAge && userProfile.age > scheme.maxAge) return false;
         if (scheme.maxIncome && userProfile.income > scheme.maxIncome) return false;
-        if (scheme.targetGender && scheme.targetGender !== "All" && scheme.targetGender !== userProfile.gender) return false;
-        if (scheme.state && scheme.state !== "All" && scheme.state !== userProfile.state) return false;
+        if (scheme.targetGender && scheme.targetGender !== 'All' && scheme.targetGender !== userProfile.gender) return false;
+        if (scheme.state && scheme.state !== 'All' && scheme.state !== userProfile.state) return false;
         return true;
       });
 
       return { success: true, data: eligible };
     } catch (error) {
-      console.error("Error matching eligibility:", error);
+      console.error('Error matching eligibility:', error);
       return { success: false, data: [], error: error.message };
     }
   },
 
   searchSchemes: async (searchQuery) => {
     try {
-      const querySnapshot = await getDocs(collection(db, "schemes"));
-      const term = searchQuery.toLowerCase();
-      const results = querySnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(scheme => 
-          (scheme.name && scheme.name.toLowerCase().includes(term)) ||
-          (scheme.description && scheme.description.toLowerCase().includes(term)) ||
-          (scheme.category && scheme.category.toLowerCase().includes(term))
-        );
+      const { data: allSchemes } = await getSchemeCollection();
+      const term = String(searchQuery || '').trim().toLowerCase();
+
+      if (!term) {
+        return { success: true, data: allSchemes };
+      }
+
+      const results = allSchemes.filter((scheme) => {
+        const text = [
+          scheme.name,
+          scheme.description,
+          scheme.category,
+          scheme.ministry,
+          scheme.state,
+          ...(scheme.keywords || []),
+          ...(scheme.eligibilityCriteria || []),
+          ...(scheme.documents || [])
+        ].join(' ').toLowerCase();
+
+        return text.includes(term);
+      });
+
       return { success: true, data: results };
     } catch (error) {
-      console.error("Error searching schemes:", error);
+      console.error('Error searching schemes:', error);
       return { success: false, data: [], error: error.message };
     }
   },

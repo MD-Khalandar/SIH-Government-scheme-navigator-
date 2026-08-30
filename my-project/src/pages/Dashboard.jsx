@@ -44,19 +44,21 @@ export const Dashboard = () => {
       const savedList = Array.isArray(savedRes?.data) ? savedRes.data.map(s => s.schemeId || s.id) : [];
       setSavedSchemes(savedList);
 
+      // 2. Format user profile
       const userProfile = {
-        age: profile?.age || null,
-        gender: profile?.gender || null,
-        income: profile?.income || null,
-        student: profile?.studying === 'yes',
-        employmentStatus: profile?.occupation || null,
-        occupation: profile?.occupation || null,
-        ownLand: profile?.ownLand === 'yes',
-        landholding: profile?.landholding || null,
-        disability: profile?.disability === 'yes',
-        disabilityPercentage: profile?.disability === 'yes' ? 40 : 0
+        age: profile?.age || 0,
+        gender: profile?.gender || 'Any',
+        income: profile?.income || 100000000,
+        student: profile?.studying === 'Yes',
+        employmentStatus: profile?.occupation || 'Any',
+        occupation: profile?.occupation || 'Any',
+        ownLand: profile?.ownLand === 'Yes',
+        landholding: profile?.landholding || 0,
+        disability: profile?.disability === 'Yes',
+        disabilityPercentage: profile?.disability === 'Yes' ? 40 : 0
       };
 
+      // 3. Get eligibility summary securely
       const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, allSchemes);
       
       if (summaryRes && summaryRes.data) {
@@ -149,36 +151,25 @@ export const Dashboard = () => {
 
             {/* Metric Capsules */}
             {summary && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-                {/* Eligible */}
-                <div className="dashboard-metric-capsule p-6 rounded-3xl flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#0a2e14]/75">High Match</span>
-                    <div className="w-8 h-8 rounded-xl bg-[#177e4f]/15 text-[#177e4f] flex items-center justify-center">
-                      <CheckCircle2 size={18} strokeWidth={2.5} />
-                    </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-[#177e4f] mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Potentially Eligible</span>
+                    <CheckCircle2 size={18} />
                   </div>
                   <p className="text-3xl font-extrabold text-[#061b0d] tracking-tight">{summary.highMatch}</p>
                 </div>
-
-                {/* Additional Info Required */}
-                <div className="dashboard-metric-capsule p-6 rounded-3xl flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#0a2e14]/75">Needs Verification</span>
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center">
-                      <AlertCircle size={18} strokeWidth={2.5} />
-                    </div>
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Needs More Info</span>
+                    <AlertCircle size={18} />
                   </div>
-                  <p className="text-3xl font-extrabold text-[#061b0d] tracking-tight">{summary.needsMore}</p>
+                  <p className="text-3xl font-light text-[#14341e]">{summary.needsMore}</p>
                 </div>
-
-                {/* Total Schemes Analyzed */}
-                <div className="dashboard-metric-capsule p-6 rounded-3xl flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-bold uppercase tracking-wider text-[#0a2e14]/75">Total Directives</span>
-                    <div className="w-8 h-8 rounded-xl bg-[#177e4f]/15 text-[#177e4f] flex items-center justify-center">
-                      <Gift size={18} strokeWidth={2.5} />
-                    </div>
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-[#177e4f] mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Total Schemes</span>
+                    <Gift size={18} />
                   </div>
                   <p className="text-3xl font-extrabold text-[#061b0d] tracking-tight">{summary.totalSchemes}</p>
                 </div>

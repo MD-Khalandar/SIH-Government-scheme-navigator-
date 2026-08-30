@@ -1,8 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { Navbar, Sidebar, Input } from '../components';
+import { Navbar, Sidebar, Input, Select } from '../components';
+
+const buildFormData = (profile = {}) => ({
+  age: profile.age ?? '',
+  gender: profile.gender ?? '',
+  state: profile.state ?? '',
+  district: profile.district ?? '',
+  urban: profile.urban ?? '',
+  socialCategory: profile.socialCategory ?? '',
+  disability: profile.disability ?? '',
+  income: profile.income ?? '',
+  bpl: profile.bpl ?? '',
+  occupation: profile.occupation ?? '',
+  studying: profile.studying ?? '',
+  lookingForWork: profile.lookingForWork ?? '',
+  ownLand: profile.ownLand ?? '',
+  landholding: profile.landholding ?? '',
+  ownHouse: profile.ownHouse ?? '',
+  housingCondition: profile.housingCondition ?? '',
+  businessPlanning: profile.businessPlanning ?? '',
+  existingBusiness: profile.existingBusiness ?? '',
+  businessCategory: profile.businessCategory ?? ''
+});
 
 export const Profile = () => {
   const navigate = useNavigate();
@@ -10,13 +32,25 @@ export const Profile = () => {
   const { profile, updateProfile } = useProfile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(profile || {});
+  const [formData, setFormData] = useState(buildFormData(profile));
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setFormData(buildFormData(profile));
+  }, [profile]);
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      await updateProfile(formData);
+      await updateProfile({
+        ...formData,
+        age: formData.age === '' ? '' : Number(formData.age),
+        income: formData.income === '' ? '' : Number(formData.income),
+      });
       setIsEditing(false);
     } catch (err) {
       console.error(err);
@@ -42,7 +76,6 @@ export const Profile = () => {
               <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1">Account & Settings</h1>
             </div>
 
-            {/* Personal Details */}
             <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-base sm:text-lg font-normal text-[#14341e]">Personal Record</h2>
@@ -57,17 +90,42 @@ export const Profile = () => {
               </div>
 
               {isEditing ? (
-                <div className="space-y-4">
-                  <Input label="Name" value={user?.name || ''} disabled />
-                  <Input label="Email" type="email" value={user?.email || ''} disabled />
-                  <Input label="Contact" value={user?.phone || ''} disabled />
+                <div className="space-y-5">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input label="Full Name" value={user?.name || ''} disabled />
+                    <Input label="Email Address" type="email" value={user?.email || ''} disabled />
+                    <Input label="Phone Number" value={user?.phone || ''} disabled />
+                    <Input label="Age" type="number" value={formData.age} onChange={(e) => handleChange('age', e.target.value)} />
+                  </div>
+
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Select label="Gender" value={formData.gender} onChange={(e) => handleChange('gender', e.target.value)} placeholder="Select" options={[{ label: 'Male', value: 'Male' }, { label: 'Female', value: 'Female' }, { label: 'Other', value: 'Other' }]} />
+                    <Select label="State" value={formData.state} onChange={(e) => handleChange('state', e.target.value)} placeholder="Select state" options={[{ label: 'Karnataka', value: 'Karnataka' }, { label: 'Maharashtra', value: 'Maharashtra' }, { label: 'Delhi', value: 'Delhi' }, { label: 'Tamil Nadu', value: 'Tamil Nadu' }, { label: 'West Bengal', value: 'West Bengal' }]} />
+                    <Input label="District" value={formData.district} onChange={(e) => handleChange('district', e.target.value)} placeholder="District" />
+                    <Select label="Urban / Rural" value={formData.urban} onChange={(e) => handleChange('urban', e.target.value)} placeholder="Select" options={[{ label: 'Urban', value: 'Urban' }, { label: 'Rural', value: 'Rural' }]} />
+                    <Select label="Social Category" value={formData.socialCategory} onChange={(e) => handleChange('socialCategory', e.target.value)} placeholder="Select" options={[{ label: 'General', value: 'General' }, { label: 'OBC', value: 'OBC' }, { label: 'SC', value: 'SC' }, { label: 'ST', value: 'ST' }]} />
+                    <Select label="Disability" value={formData.disability} onChange={(e) => handleChange('disability', e.target.value)} placeholder="Select" options={[{ label: 'No', value: 'No' }, { label: 'Yes', value: 'Yes' }]} />
+                    <Input label="Annual Income (₹)" type="number" value={formData.income} onChange={(e) => handleChange('income', e.target.value)} placeholder="500000" />
+                    <Select label="Below Poverty Line" value={formData.bpl} onChange={(e) => handleChange('bpl', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Select label="Occupation" value={formData.occupation} onChange={(e) => handleChange('occupation', e.target.value)} placeholder="Select" options={[{ label: 'Farmer', value: 'Farmer' }, { label: 'Student', value: 'Student' }, { label: 'Self-Employed', value: 'Self-Employed' }, { label: 'Salaried', value: 'Salaried' }, { label: 'Unemployed', value: 'Unemployed' }, { label: 'Household', value: 'Household' }]} />
+                    <Select label="Currently Studying" value={formData.studying} onChange={(e) => handleChange('studying', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Select label="Looking for Work" value={formData.lookingForWork} onChange={(e) => handleChange('lookingForWork', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Select label="Own Land" value={formData.ownLand} onChange={(e) => handleChange('ownLand', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Input label="Landholding Size (acres)" type="number" value={formData.landholding} onChange={(e) => handleChange('landholding', e.target.value)} placeholder="0.5" />
+                    <Select label="Own House" value={formData.ownHouse} onChange={(e) => handleChange('ownHouse', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Select label="Housing Condition" value={formData.housingCondition} onChange={(e) => handleChange('housingCondition', e.target.value)} placeholder="Select" options={[{ label: 'Kuccha', value: 'Kuccha' }, { label: 'Semi-Pucca', value: 'Semi-Pucca' }, { label: 'Pucca', value: 'Pucca' }]} />
+                    <Select label="Business Planning" value={formData.businessPlanning} onChange={(e) => handleChange('businessPlanning', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Select label="Existing Business" value={formData.existingBusiness} onChange={(e) => handleChange('existingBusiness', e.target.value)} placeholder="Select" options={[{ label: 'Yes', value: 'Yes' }, { label: 'No', value: 'No' }]} />
+                    <Input label="Business Category" value={formData.businessCategory} onChange={(e) => handleChange('businessCategory', e.target.value)} placeholder="Retail, agriculture..." />
+                  </div>
+
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={handleSave}
                       disabled={loading}
                       className="px-5 py-2 rounded-full bg-[#177e4f] text-white text-xs hover:bg-[#14341e] transition shadow-sm"
                     >
-                      Commit Changes
+                      {loading ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button
                       onClick={() => setIsEditing(false)}
@@ -95,36 +153,6 @@ export const Profile = () => {
               )}
             </div>
 
-            {/* Criteria Profile */}
-            <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
-              <h2 className="text-base sm:text-lg font-normal text-[#14341e] mb-5">Active Criteria Summary</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-light mb-6">
-                <div>
-                  <p className="text-[#14341e]/50">Age</p>
-                  <p className="text-sm font-normal text-[#14341e] mt-1">{profile?.age || 'Not defined'}</p>
-                </div>
-                <div>
-                  <p className="text-[#14341e]/50">Territory</p>
-                  <p className="text-sm font-normal text-[#14341e] mt-1">{profile?.state || 'Not defined'}</p>
-                </div>
-                <div>
-                  <p className="text-[#14341e]/50">Income</p>
-                  <p className="text-sm font-normal text-[#14341e] mt-1">{profile?.income || 'Not defined'}</p>
-                </div>
-                <div>
-                  <p className="text-[#14341e]/50">Occupation</p>
-                  <p className="text-sm font-normal text-[#14341e] mt-1">{profile?.occupation || 'Not defined'}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/app/eligibility-profile')}
-                className="px-5 py-2 rounded-full bg-white/60 hover:bg-white text-xs text-[#14341e] border border-[#a9c7b1]/40 transition"
-              >
-                Re-evaluate Profile Criteria
-              </button>
-            </div>
-
-            {/* Privacy & Logout Controls */}
             <div className="rounded-3xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <p className="text-xs text-[#14341e]/70 font-light">
                 Session state is isolated locally. Revoking credentials clears browser storage.

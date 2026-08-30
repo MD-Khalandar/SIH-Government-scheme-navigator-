@@ -1,63 +1,170 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar, Sidebar, SchemeCard, EmptyState } from '../components';
 import { Search, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { schemeService } from '../services/schemeService';
-import dataAtWorkIllustration from '../assets/undraw_data-at-work_3tbf.svg';
-import './Dashboard.css';
+import { useProfile } from '../contexts/ProfileContext';
+import { eligibilityService } from '../services/eligibilityService';
 
-const normalizeText = (value = '') => String(value).toLowerCase().trim();
+const normalizeText = (value = '') =>
+  String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const immediateCauseOptions = [
+  { label: 'Child Birth', value: 'child birth' },
+  { label: 'Graduate', value: 'graduate' },
+  { label: 'Marriage', value: 'marriage' },
+  { label: 'Job Loss', value: 'job loss' },
+  { label: 'Disability', value: 'disability' },
+  { label: 'Housing', value: 'housing' },
+  { label: 'Agriculture', value: 'agriculture' },
+  { label: 'Business', value: 'business' },
+  { label: 'Senior Citizen', value: 'senior citizen' }
+];
 
 export const FindBenefits = () => {
   const navigate = useNavigate();
+  const { profile } = useProfile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ state: '', category: '', ministry: '' });
+  const [filters, setFilters] = useState({ state: '', category: '', ministry: '', immediateCause: '' });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const runSearch = async (customQuery = searchQuery) => {
     setLoading(true);
 
     try {
-      const query = normalizeText(searchQuery);
-      const { data = [] } = await schemeService.getSchemes();
+      const { data: schemes } = await schemeService.getSchemes();
+      const query = normalizeText(customQuery);
+      const queryTokens = query ? query.split(' ').filter(Boolean) : [];
+      const activeFilters = Object.values(filters).some(value => String(value || '').trim() !== '');
 
-      const filtered = data.filter((scheme) => {
-        const searchable = [
-          scheme.name,
-          scheme.description,
-          scheme.category,
-          scheme.ministry,
-          scheme.state,
-          scheme.benefit?.type,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
+      if (!query && !activeFilters) {
+        setResults(Array.isArray(schemes) ? schemes : []);
+        setLoading(false);
+        return;
+      }
 
-        const matchesQuery = !query || searchable.includes(query);
-        const matchesState =
-          !filters.state ||
-          normalizeText(scheme.state).includes(normalizeText(filters.state)) ||
-          normalizeText(filters.state).includes(normalizeText(scheme.state)) ||
-          normalizeText(scheme.state) === 'all india';
-        const matchesCategory =
-          !filters.category || normalizeText(scheme.category) === normalizeText(filters.category);
-        const matchesMinistry =
-          !filters.ministry || normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
+      const userProfile = {
+        age: profile?.age ?? 0,
+        income: profile?.income ?? 0,
+        gender: profile?.gender ?? '',
+        occupation: profile?.occupation ?? '',
+        studying: profile?.studying ?? '',
+        lookingForWork: profile?.lookingForWork ?? '',
+        bpl: profile?.bpl ?? '',
+        ownLand: profile?.ownLand ?? '',
+        disability: profile?.disability ?? '',
+        state: profile?.state ?? ''
+      };
 
-        return matchesQuery && matchesState && matchesCategory && matchesMinistry;
-      });
+      const ranked = await eligibilityService.getMatchingSchemes(userProfile, schemes);
 
-      setResults(filtered);
+      const filtered = ranked
+        .map((scheme) => {
+          const searchable = [
+            scheme.name,
+            scheme.description,
+            scheme.category,
+            scheme.ministry,
+            scheme.state,
+            ...(scheme.keywords || []),
+            ...(scheme.eligibilityCriteria || []),
+            ...(scheme.documents || []),
+            scheme.immediateCause || ''
+          ].join(' ');
+
+          const haystack = normalizeText(searchable);
+          let score = 0;
+
+          if (query) {
+            if (normalizeText(scheme.name).includes(query)) score += 35;
+            if (haystack.includes(query)) score += 18;
+            queryTokens.forEach((token) => {
+              if (normalizeText(scheme.name).includes(token)) score += 12;
+              if (haystack.includes(token)) score += 6;
+            });
+          } else {
+            score = 10;
+          }
+
+          if (filters.immediateCause) {
+            const causeMatch = normalizeText(scheme.immediateCause || '').includes(normalizeText(filters.immediateCause)) || normalizeText(scheme.name).includes(normalizeText(filters.immediateCause));
+            if (causeMatch) score += 20; else score -= 50;
+          }
+
+          if (filters.state) {
+            const stateMatch = normalizeText(scheme.state).includes(normalizeText(filters.state)) || normalizeText(scheme.state) === 'all india';
+            if (stateMatch) score += 10; else score -= 50;
+          }
+
+          if (filters.category) {
+            const categoryMatch = normalizeText(scheme.category).includes(normalizeText(filters.category));
+            if (categoryMatch) score += 10; else score -= 50;
+          }
+
+          if (filters.ministry) {
+            const ministryMatch = normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
+            if (ministryMatch) score += 8; else score -= 50;
+          }
+
+          return { ...scheme, matchScore: score > 0 ? score : 1 };
+        })
+        .filter((scheme) => {
+          if (!query && !activeFilters) {
+            return true;
+          }
+
+          const searchable = [
+            scheme.name,
+            scheme.description,
+            scheme.category,
+            scheme.ministry,
+            scheme.state,
+            ...(scheme.keywords || []),
+            ...(scheme.eligibilityCriteria || []),
+            ...(scheme.documents || []),
+            scheme.immediateCause || ''
+          ].join(' ');
+
+          const haystack = normalizeText(searchable);
+          const matchesName = !query || normalizeText(scheme.name).includes(query) || haystack.includes(query);
+          const matchesImmediateCause = !filters.immediateCause || normalizeText(scheme.immediateCause || '').includes(normalizeText(filters.immediateCause)) || normalizeText(scheme.name).includes(normalizeText(filters.immediateCause));
+          const matchesState = !filters.state || normalizeText(scheme.state).includes(normalizeText(filters.state)) || normalizeText(scheme.state) === 'all india';
+          const matchesCategory = !filters.category || normalizeText(scheme.category).includes(normalizeText(filters.category));
+          const matchesMinistry = !filters.ministry || normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
+          const matchesQueryTokens = !query || queryTokens.some((token) => haystack.includes(token) || normalizeText(scheme.name).includes(token));
+
+          return matchesName && matchesImmediateCause && matchesState && matchesCategory && matchesMinistry && matchesQueryTokens;
+        })
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 60);
+
+      if (!query && !activeFilters) {
+        setResults(Array.isArray(schemes) ? schemes : []);
+        return;
+      }
+
+      setResults(filtered.length ? filtered : []);
     } catch (error) {
-      console.error('Error searching schemes:', error);
+      console.error('FindBenefits search failed:', error);
       setResults([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    runSearch();
+  }, [profile, searchQuery, filters]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    await runSearch();
   };
 
   return (
@@ -90,100 +197,81 @@ export const FindBenefits = () => {
               />
             </div>
 
-            <form
-              onSubmit={handleSearch}
-              className="find-benefits-glass-card mb-8 rounded-[2rem] p-6 sm:p-8"
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-[#0a2e14]">
-                    Search Keywords
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Scheme title, ministry, grant, or benefit keyword..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="find-benefits-input w-full rounded-xl px-4 py-3 text-xs font-semibold outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-[#0a2e14]">
-                    State Jurisdiction
-                  </label>
-                  <select
-                    value={filters.state}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, state: e.target.value }))}
-                    className="find-benefits-input w-full rounded-xl px-4 py-3 text-xs font-semibold outline-none"
-                  >
-                    <option value="">All States & Territories</option>
-                    <option value="karnataka">Karnataka</option>
-                    <option value="maharashtra">Maharashtra</option>
-                    <option value="delhi">Delhi</option>
-                    <option value="tamil-nadu">Tamil Nadu</option>
-                    <option value="uttar-pradesh">Uttar Pradesh</option>
-                    <option value="all india">All India / Central</option>
-                  </select>
-                </div>
+            <form onSubmit={handleSearch} className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 space-y-5 mb-8">
+              <div className="grid md:grid-cols-2 gap-4">
+                <Input
+                  label="Search by scheme name or keyword"
+                  placeholder="Enter scheme name, scholarship, pension, loan..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Select
+                  label="Immediate Cause"
+                  placeholder="Any life event"
+                  value={filters.immediateCause}
+                  onChange={(e) => setFilters(prev => ({ ...prev, immediateCause: e.target.value }))}
+                  options={immediateCauseOptions}
+                />
               </div>
 
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-[#0a2e14]">
-                    Sector Category
-                  </label>
-                  <select
-                    value={filters.category}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, category: e.target.value }))}
-                    className="find-benefits-input w-full rounded-xl px-4 py-3 text-xs font-semibold outline-none"
-                  >
-                    <option value="">All Sectors</option>
-                    <option value="education & research">Education & Research</option>
-                    <option value="employment & skill development">Employment & Skill Development</option>
-                    <option value="agriculture & rural development">Agriculture & Rural Development</option>
-                    <option value="health & wellness">Health & Wellness</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase tracking-[0.18em] text-[#0a2e14]">
-                    Nodal Department
-                  </label>
-                  <select
-                    value={filters.ministry}
-                    onChange={(e) => setFilters((prev) => ({ ...prev, ministry: e.target.value }))}
-                    className="find-benefits-input w-full rounded-xl px-4 py-3 text-xs font-semibold outline-none"
-                  >
-                    <option value="">All Ministries</option>
-                    <option value="ministry of education">Ministry of Education</option>
-                    <option value="ministry of labour and employment">Ministry of Labour and Employment</option>
-                    <option value="department of agriculture">Department of Agriculture</option>
-                  </select>
-                </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <Select
+                  label="State Jurisdiction"
+                  placeholder="All Territories"
+                  value={filters.state}
+                  onChange={(e) => setFilters(prev => ({ ...prev, state: e.target.value }))}
+                  options={[
+                    { label: 'Karnataka', value: 'karnataka' },
+                    { label: 'Maharashtra', value: 'maharashtra' },
+                    { label: 'Delhi', value: 'delhi' },
+                    { label: 'All India', value: 'all india' }
+                  ]}
+                />
+                <Select
+                  label="Classification"
+                  placeholder="All sectors"
+                  value={filters.category}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value }))}
+                  options={[
+                    { label: 'Education & Research', value: 'education' },
+                    { label: 'Employment & Skilling', value: 'employment' },
+                    { label: 'Agriculture & Agritech', value: 'agriculture' },
+                    { label: 'Healthcare', value: 'healthcare' },
+                    { label: 'Housing', value: 'housing' }
+                  ]}
+                />
               </div>
 
-              <div className="mt-5 flex flex-col items-center justify-between gap-4 border-t border-[#061b0d]/10 pt-4 sm:flex-row">
-                <div className="flex flex-wrap gap-2 text-[11px] font-bold text-[#061b0d]">
-                  <span className="rounded-full bg-[#177e4f]/10 px-2.5 py-1 text-[#177e4f]">Demographic-first</span>
-                  <span className="rounded-full bg-[#177e4f]/10 px-2.5 py-1 text-[#177e4f]">State-aware</span>
-                  <span className="rounded-full bg-[#177e4f]/10 px-2.5 py-1 text-[#177e4f]">Zero-Broker</span>
+              <div className="grid md:grid-cols-2 gap-4">
+                <Select
+                  label="Ministry / Department"
+                  placeholder="All Authorities"
+                  value={filters.ministry}
+                  onChange={(e) => setFilters(prev => ({ ...prev, ministry: e.target.value }))}
+                  options={[
+                    { label: 'Education', value: 'education' },
+                    { label: 'Labour & Employment', value: 'labour' },
+                    { label: 'Agriculture & Farmers Welfare', value: 'agriculture' },
+                    { label: 'Health & Family Welfare', value: 'health' },
+                    { label: 'Social Justice', value: 'social' }
+                  ]}
+                />
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#177e4f] text-white text-xs font-normal hover:bg-[#14341e] transition shadow-sm"
+                  >
+                    <Search size={14} className="text-[#4ae278]" />
+                    <span>Search Schemes</span>
+                  </button>
                 </div>
-
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#061b0d] px-6 py-3 text-xs font-bold uppercase tracking-[0.18em] text-[#c9f3ce] shadow-md transition-all duration-300 hover:bg-[#177e4f] hover:text-white sm:w-auto"
-                >
-                  <Search size={14} className="text-[#4ae278]" />
-                  <span>Execute Search</span>
-                </button>
               </div>
             </form>
 
             {results === null ? (
-              <div className="find-benefits-glass-card rounded-[2rem] p-8 text-center">
-                <p className="text-sm font-semibold text-[#0a2e14]/80">
-                  Enter criteria or select filters above to query statutory schemes and entitlements.
+              <div className="rounded-2xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-5 text-center">
+                <p className="text-xs text-[#14341e]/70 font-light leading-relaxed">
+                  Review schemes by name, life event, or profile relevance.
                 </p>
               </div>
             ) : loading ? (
@@ -191,31 +279,19 @@ export const FindBenefits = () => {
                 Evaluating policy databases...
               </div>
             ) : results.length === 0 ? (
-              <div className="find-benefits-glass-card rounded-[2rem] p-12 text-center">
-                <EmptyState
-                  icon={Search}
-                  title="No direct directives found"
-                  description="Try broadening your keywords or selecting 'All States' to widen scheme parameters."
-                />
-              </div>
+              <EmptyState icon={Search} title="No schemes found" description="Try a broader keyword or clear the filters." />
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <p className="text-xs font-bold text-[#0a2e14]">
-                    Identified <span className="text-[#177e4f]">{results.length}</span> matching assistance program{results.length === 1 ? '' : 's'}
-                  </p>
-                </div>
-
-                <div className="grid gap-4">
-                  {results.map((scheme) => (
-                    <SchemeCard
-                      key={scheme.id}
-                      scheme={scheme}
-                      eligibility={{ matchPercentage: 0 }}
-                      onViewDetails={() => navigate(`/app/schemes/${scheme.id}`)}
-                    />
-                  ))}
-                </div>
+              <div className="grid gap-6">
+                <p className="text-sm text-gray-600">{results.length} scheme{results.length === 1 ? '' : 's'} found</p>
+                {results.map((scheme) => (
+                  <SchemeCard
+                    key={scheme.id}
+                    scheme={scheme}
+                    eligibility={scheme.eligibility || { matchPercentage: 0 }}
+                    onViewDetails={() => navigate(`/app/schemes/${scheme.id}`)}
+                    onSave={() => schemeService.saveScheme(scheme.id)}
+                  />
+                ))}
               </div>
             )}
           </div>

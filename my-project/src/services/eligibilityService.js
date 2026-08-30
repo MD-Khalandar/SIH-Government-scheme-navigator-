@@ -27,17 +27,17 @@ export const eligibilityService = {
     const matched = getMatchingSchemes(userProfile, schemes);
     
     const fullyMatched = matched.filter(s => s.eligibility.matchPercentage === 100);
-    const highMatch = matched.filter(s => s.eligibility.matchPercentage >= 75 && s.eligibility.matchPercentage < 100);
+    const highMatch = matched.filter(s => s.eligibility.matchPercentage >= 50);
     const needsMore = matched.filter(s => s.eligibility.matchPercentage >= 50 && s.eligibility.matchPercentage < 75);
     const lowMatch = matched.filter(s => s.eligibility.matchPercentage < 50);
-    
+
     const totalBenefit = matched.reduce((sum, scheme) => {
-      if (scheme.eligibility.matchPercentage >= 75) {
+      if (scheme.eligibility.matchPercentage >= 50) {
         return sum + (scheme.benefit?.amount || 0);
       }
       return sum;
     }, 0);
-    
+
     return {
       success: true,
       data: {
