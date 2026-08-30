@@ -3,11 +3,28 @@
 export const evaluateEligibility = (userProfile, scheme) => {
   const matchedRules = [];
   const failedRules = [];
+  const rules = Array.isArray(scheme?.eligibilityRules) ? scheme.eligibilityRules : [];
 
-  scheme.eligibilityRules.forEach(rule => {
-    const userValue = userProfile[rule.field];
+  if (rules.length === 0) {
+    return {
+      isEligible: false,
+      matchPercentage: 0,
+      matchedRules: [],
+      failedRules: [],
+      matchCount: 0,
+      totalRules: 0
+    };
+  }
+
+  rules.forEach(rule => {
+    const userValue = userProfile?.[rule.field];
+
+    if (userValue === undefined || userValue === null || userValue === '') {
+      return;
+    }
+
     const isMatched = evaluateRule(userValue, rule);
-    
+
     if (isMatched) {
       matchedRules.push(rule);
     } else {
@@ -15,12 +32,12 @@ export const evaluateEligibility = (userProfile, scheme) => {
     }
   });
 
-  const totalRules = scheme.eligibilityRules.length;
-  const matchPercentage = totalRules > 0 ? (matchedRules.length / totalRules) * 100 : 0;
+  const totalRules = rules.length;
+  const matchPercentage = totalRules > 0 ? Math.round((matchedRules.length / totalRules) * 100) : 0;
 
   return {
-    isEligible: failedRules.length === 0,
-    matchPercentage: Math.round(matchPercentage),
+    isEligible: matchPercentage >= 50,
+    matchPercentage: Math.max(0, Math.min(100, matchPercentage)),
     matchedRules,
     failedRules,
     matchCount: matchedRules.length,
@@ -30,10 +47,6 @@ export const evaluateEligibility = (userProfile, scheme) => {
 
 const evaluateRule = (userValue, rule) => {
   const { operator, value } = rule;
-
-  if (userValue === undefined || userValue === null) {
-    return false;
-  }
 
   switch (operator) {
     case "==":

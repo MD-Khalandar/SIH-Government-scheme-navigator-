@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../contexts/ProfileContext';
 import { Input, Select } from '../components';
 
 export const EligibilityProfile = () => {
   const navigate = useNavigate();
-  const { updateProfile } = useProfile();
+  const { profile, updateProfile } = useProfile();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     age: '',
@@ -28,6 +28,29 @@ export const EligibilityProfile = () => {
     ownHouse: '',
     housingCondition: ''
   });
+
+  useEffect(() => {
+    if (!profile) return;
+    setFormData(prev => ({
+      ...prev,
+      age: profile.age ?? prev.age,
+      gender: profile.gender ?? prev.gender,
+      state: profile.state ?? prev.state,
+      urban: profile.urban ?? prev.urban,
+      dependents: profile.dependents ?? prev.dependents,
+      children: profile.children ?? prev.children,
+      district: profile.district ?? prev.district,
+      socialCategory: profile.socialCategory ?? prev.socialCategory,
+      disability: profile.disability ?? prev.disability,
+      income: profile.income ?? prev.income,
+      occupation: profile.occupation ?? prev.occupation,
+      ownLand: profile.ownLand ?? prev.ownLand,
+      landholding: profile.landholding ?? prev.landholding,
+      seniorCitizens: profile.seniorCitizens ?? prev.seniorCitizens,
+      ownHouse: profile.ownHouse ?? prev.ownHouse,
+      housingCondition: profile.housingCondition ?? prev.housingCondition
+    }));
+  }, [profile]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;

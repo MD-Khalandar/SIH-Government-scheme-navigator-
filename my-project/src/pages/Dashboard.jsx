@@ -31,17 +31,51 @@ export const Dashboard = () => {
       const savedRes = await schemeService.getSavedSchemes();
       setSavedSchemes(savedRes.data.map(s => s.id));
 
+      const demoProfile = {
+        age: 28,
+        gender: 'female',
+        state: 'karnataka',
+        district: 'Bengaluru',
+        urban: 'urban',
+        income: 250000,
+        socialCategory: 'general',
+        student: true,
+        occupation: 'student',
+        employmentStatus: 'student',
+        ownLand: false,
+        landholding: 0,
+        dependents: 0,
+        children: 0,
+        disability: false,
+        disabilityPercentage: 0,
+        lookingForWork: 'no',
+        ownHouse: false,
+        seniorCitizens: 0,
+        bpl: 'no'
+      };
+
       const userProfile = {
-        age: profile?.age || null,
-        gender: profile?.gender || null,
-        income: profile?.income || null,
-        student: profile?.studying === 'yes',
-        employmentStatus: profile?.occupation || null,
-        occupation: profile?.occupation || null,
-        ownLand: profile?.ownLand === 'yes',
-        landholding: profile?.landholding || null,
-        disability: profile?.disability === 'yes',
-        disabilityPercentage: profile?.disability === 'yes' ? 40 : 0
+        ...demoProfile,
+        age: profile?.age ?? demoProfile.age,
+        gender: profile?.gender ?? demoProfile.gender,
+        state: profile?.state ?? demoProfile.state,
+        district: profile?.district ?? demoProfile.district,
+        urban: profile?.urban ?? demoProfile.urban,
+        income: profile?.income ?? demoProfile.income,
+        socialCategory: profile?.socialCategory ?? demoProfile.socialCategory,
+        student: profile?.studying === 'yes' || profile?.occupation === 'student' || demoProfile.student,
+        employmentStatus: profile?.occupation ?? demoProfile.occupation,
+        occupation: profile?.occupation ?? demoProfile.occupation,
+        ownLand: profile?.ownLand === 'yes' || profile?.ownLand === true || demoProfile.ownLand,
+        landholding: profile?.landholding ?? demoProfile.landholding,
+        dependents: profile?.dependents ?? demoProfile.dependents,
+        children: profile?.children ?? demoProfile.children,
+        disability: profile?.disability === 'yes' || profile?.disability === true || demoProfile.disability,
+        disabilityPercentage: profile?.disability === 'yes' || profile?.disability === true ? 40 : demoProfile.disabilityPercentage,
+        lookingForWork: profile?.lookingForWork ?? demoProfile.lookingForWork,
+        ownHouse: profile?.ownHouse ?? demoProfile.ownHouse,
+        seniorCitizens: profile?.seniorCitizens ?? demoProfile.seniorCitizens,
+        bpl: profile?.bpl ?? demoProfile.bpl
       };
 
       const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, schemesRes.data);
@@ -118,10 +152,10 @@ export const Dashboard = () => {
                 </div>
                 <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
                   <div className="flex items-center justify-between text-amber-700 mb-3">
-                    <span className="text-xs font-light text-[#14341e]/60">Needs More Info</span>
-                    <AlertCircle size={18} />
+                    <span className="text-xs font-light text-[#14341e]/60">Applyable</span>
+                    <CheckCircle2 size={18} />
                   </div>
-                  <p className="text-3xl font-light text-[#14341e]">{summary.needsMore}</p>
+                  <p className="text-3xl font-light text-[#14341e]">{summary.highMatch}</p>
                 </div>
                 <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
                   <div className="flex items-center justify-between text-[#177e4f] mb-3">
