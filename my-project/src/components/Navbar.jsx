@@ -29,7 +29,7 @@ export const Navbar = ({ title, onMenuClick }) => {
                 <span className="text-white font-bold text-sm">S</span>
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-gray-900">SAHAYAK</h1>
+                <span className="block text-lg font-bold leading-tight text-gray-900">SAHAYAK</span>
                 <p className="text-xs text-gray-500">Benefits Navigator</p>
               </div>
             </Link>

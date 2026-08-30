@@ -5,34 +5,20 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Prevents the sticky navigation bar from covering section titles */
+/* Prevents sticky header from covering titles */
 #hero,
 #pathway,
-#benefits,
-#citizens {
+#benefits {
   scroll-margin-top: 6rem;
 }
 
-/* Typography Utility */
+/* Typography Foundation */
 .font-jakarta {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
 .font-editorial {
   font-family: 'Playfair Display', Georgia, serif;
-}
-
-/* Ambient Radial Mesh Accents */
-.ambient-glow-top {
-  background: radial-gradient(circle at center, rgba(74, 226, 120, 0.28) 0%, rgba(23, 126, 79, 0.12) 45%, transparent 75%);
-}
-
-.ambient-glow-mid {
-  background: radial-gradient(circle at center, rgba(254, 240, 138, 0.25) 0%, rgba(74, 226, 120, 0.15) 40%, transparent 70%);
-}
-
-.ambient-glow-bottom {
-  background: radial-gradient(circle at center, rgba(20, 52, 30, 0.18) 0%, rgba(23, 126, 79, 0.10) 50%, transparent 75%);
 }
 
 /* Fluid Frosted Glass Panels */
@@ -55,11 +41,4 @@ html {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.75);
-}
-
-.glass-pill {
-  background-color: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
 }

@@ -94,7 +94,7 @@ export const Onboarding = () => {
         {/* Minimal Dashboard Link */}
         <Link 
           to="/app/dashboard" 
-          className="text-s font-semibold text-[#0a2e14]/75 hover:text-[#177e4f] transition-colors inline-flex items-center gap-1"
+          className="text-xs font-semibold text-[#0a2e14]/75 hover:text-[#177e4f] transition-colors inline-flex items-center gap-1"
         >
           <span>Skip to Dashboard</span>
           <ArrowRight size={13} />

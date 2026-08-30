@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Typography Anchor */
+.font-dashboard {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #061b0d;
+}
+
+/* Fluid Page Backdrop Canvas */
+.dashboard-page-canvas {
+  background-color: #c2f0c8;
+  background-image: url('../assets/blurry-gradient-haikei.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #061b0d;
+}
+
+/* App Shell Navigation Styling */
+.dashboard-page-canvas > aside {
+  background: rgba(255, 255, 255, 0.78);
+  border-right-color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+.dashboard-page-canvas > .flex-1 > nav {
+  margin: 0;
+  background: rgba(255, 255, 255, 0.8);
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.dashboard-page-canvas aside a[class*='bg-brand-blue'],
+.dashboard-page-canvas aside a[class*='bg-brand-blue']:hover {
+  background: #061b0d;
+  color: #ffffff;
+}
+
+.dashboard-page-canvas aside a:not([class*='bg-brand-blue']):hover,
+.dashboard-page-canvas aside button:hover {
+  background: rgba(23, 126, 79, 0.1);
+  color: #061b0d;
+}
+
+.dashboard-page-canvas .bg-brand-blue {
+  background-color: #177e4f;
+}
+
+/* Lucid Glass Containers */
+.dashboard-glass-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+/* Metric Capsules */
+.dashboard-metric-capsule {
+  background: transparent;
+  border: 0;
+  border-left: 2px solid rgba(23, 126, 79, 0.28);
+  border-radius: 0;
+  transition: border-color 0.2s ease;
+  box-shadow: none !important;
+}
+
+.dashboard-metric-capsule:hover {
+  transform: none;
+  border-left-color: #177e4f;
+  box-shadow: none;
+}
+
+/* Informational Notice Pill */
+.dashboard-notice-card {
+  background: rgba(201, 243, 206, 0.45);
+  border: 0;
+  border-left: 3px solid #177e4f;
+  border-radius: 0;
+}
+
+/* Primary Dashboard Header Greeting */
+.dashboard-greeting {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(6, 27, 13, 0.16);
+  padding-bottom: 1.75rem;
+  box-shadow: none;
+}
+
+.dashboard-schemes-section {
+  border-top: 1px solid rgba(6, 27, 13, 0.16);
+  padding-top: 2rem;
+}
+
+/* Schemes List Cards */
+.dashboard-scheme-list > div {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(6, 27, 13, 0.14);
+  border-radius: 0;
+  box-shadow: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.dashboard-scheme-list > div:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-bottom-color: #177e4f;
+  transform: none;
+}
+
+.dashboard-scheme-list > div .bg-blue-50 {
+  background: transparent;
+  border-color: transparent;
+  border-radius: 0;
+}
+
+.dashboard-scheme-list > div .text-brand-blue {
+  color: #177e4f;
+}
+
+.dashboard-scheme-list > div button:first-child {
+  background: #061b0d;
+  border-radius: 0.8rem;
+}
+
+.dashboard-scheme-list > div button:first-child:hover {
+  background: #177e4f;
+}
+
+@media (max-width: 1023px) {
+  .dashboard-page-canvas > .flex-1 > nav {
+    margin: 0;
+    border-inline: 0;
+    border-radius: 0;
+  }
+}
+
+/* Subtle Action Button */
+.btn-mild-action {
+  background-color: #177e4f;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.btn-mild-action:hover {
+  background-color: #12633e;
+}

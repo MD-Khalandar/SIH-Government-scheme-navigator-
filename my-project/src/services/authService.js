@@ -1,60 +1,17 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
   signOut,
   sendPasswordResetEmail,
-  updateProfile,
-  RecaptchaVerifier
+  updateProfile
 } from 'firebase/auth';
 import { auth } from '../../firebase';
-
-let recaptchaVerifier = null;
-let pendingPhoneConfirmation = null;
 
 const getConfiguredAuth = () => {
   if (!auth) {
     throw new Error('Firebase is not configured. Add valid VITE_FIREBASE_* values to .env.local and restart the dev server.');
   }
   return auth;
-};
-
-const normalizePhoneNumber = (phone) => {
-  if (!phone) return '';
-  const cleaned = phone.replace(/\D/g, '');
-  if (!cleaned) return '';
-  return cleaned.startsWith('91') ? `+${cleaned}` : `+91${cleaned}`;
-};
-
-const ensureRecaptcha = () => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  if (recaptchaVerifier) {
-    recaptchaVerifier.clear();
-    recaptchaVerifier = null;
-  }
-
-  let container = document.getElementById('recaptcha-container');
-  if (container) {
-    container.remove();
-  }
-
-  container = document.createElement('div');
-  container.id = 'recaptcha-container';
-  container.style.display = 'none';
-  document.body.appendChild(container);
-
-  recaptchaVerifier = new RecaptchaVerifier(getConfiguredAuth(), 'recaptcha-container', {
-    size: 'invisible',
-    callback: () => {},
-    'expired-callback': () => {
-      recaptchaVerifier = null;
-    }
-  });
-
-  return recaptchaVerifier;
 };
 
 const mapFirebaseUser = (firebaseUser, fallback = null) => {
@@ -76,7 +33,7 @@ const storeCurrentUser = (user) => {
   }
 
   localStorage.setItem('sahayak_user', JSON.stringify(user));
-  localStorage.setItem('sahayak_token', auth?.currentUser?.accessToken || 'firebase-phone-auth');
+  localStorage.setItem('sahayak_token', auth?.currentUser?.accessToken || 'firebase-auth');
 };
 
 export const authService = {
@@ -134,62 +91,6 @@ export const authService = {
     storeCurrentUser(user);
 
     return { success: true, user };
-  },
-
-  sendPhoneOTP: async (phone) => {
-    const normalizedPhone = normalizePhoneNumber(phone);
-    if (!normalizedPhone) {
-      throw new Error('Phone number is required');
-    }
-
-    const verifier = ensureRecaptcha();
-    if (!verifier) {
-      throw new Error('Phone authentication is not available in this browser');
-    }
-
-    pendingPhoneConfirmation = await signInWithPhoneNumber(getConfiguredAuth(), normalizedPhone, verifier);
-
-    return { success: true, message: `OTP sent to ${normalizedPhone}` };
-  },
-
-  verifyPhoneLogin: async (otp) => {
-    if (!pendingPhoneConfirmation) {
-      throw new Error('No active phone verification session found');
-    }
-
-    const credential = await pendingPhoneConfirmation.confirm(otp);
-    const user = mapFirebaseUser(credential.user);
-
-    storeCurrentUser(user);
-    pendingPhoneConfirmation = null;
-    return { success: true, user };
-  },
-
-  verifyPhoneRegister: async ({ otp, fullName, phone }) => {
-    if (!pendingPhoneConfirmation) {
-      throw new Error('No active phone registration session found');
-    }
-
-    const credential = await pendingPhoneConfirmation.confirm(otp);
-    const user = credential.user;
-
-    if (fullName) {
-      await updateProfile(user, { displayName: fullName.trim() });
-    }
-
-    const finalUser = mapFirebaseUser(user, {
-      name: fullName || '',
-      email: user.email || '',
-      phone: phone || normalizePhoneNumber(phone)
-    });
-
-    storeCurrentUser(finalUser);
-    pendingPhoneConfirmation = null;
-    return { success: true, user: finalUser };
-  },
-
-  sendOTP: async (phone) => {
-    return authService.sendPhoneOTP(phone);
   },
 
   forgotPassword: async (email) => {

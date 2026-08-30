@@ -7,7 +7,6 @@ import {
   Login,
   Register,
   ForgotPassword,
-  OTPVerification,
   Onboarding,
   LifeEvents,
   EligibilityProfile,
@@ -34,7 +33,6 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/verify-otp" element={<OTPVerification />} />
 
             {/* Onboarding Routes */}
             <Route
