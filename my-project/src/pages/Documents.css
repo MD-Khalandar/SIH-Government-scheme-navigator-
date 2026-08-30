@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.font-documents {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #061b0d;
+}
+
+.documents-page-canvas {
+  background-color: #c2f0c8;
+  background-image: url('../assets/blurry-gradient-haikei.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #061b0d;
+}
+
+.documents-glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 16px 36px -12px rgba(6, 27, 13, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+.document-item-card {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  transition: all 0.2s ease;
+}
+
+.document-item-card:hover {
+  background: #ffffff;
+  border-color: rgba(23, 126, 79, 0.4);
+}

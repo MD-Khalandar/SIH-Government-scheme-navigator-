@@ -1,7 +1,7 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertCircle, Bookmark, BookmarkCheck } from 'lucide-react';
 import Card from './Card';
-import { formatCurrency, getStatusLabel, getStatusColor } from '../utils/formatters';
+import { formatCurrency, getStatusColor } from '../utils/formatters';
 
 export const SchemeCard = ({
   scheme,
@@ -13,78 +13,76 @@ export const SchemeCard = ({
   if (!scheme) return null;
 
   const matchPercentage = eligibility?.matchPercentage || 0;
-  const status = matchPercentage === 100 ? 'fully-matched' : 
-                 matchPercentage >= 75 ? 'high-match' :
-                 matchPercentage >= 50 ? 'partial-match' : 'low-match';
+  const status =
+    matchPercentage === 100 ? 'fully-matched' :
+    matchPercentage >= 75 ? 'high-match' :
+    matchPercentage >= 50 ? 'partial-match' : 'low-match';
 
   return (
-    <Card className="hover:shadow-md transition-all cursor-pointer" hover>
-      <div className="space-y-4">
-        {/* Header */}
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">{scheme.name}</h3>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="text-sm text-gray-600">{scheme.category}</span>
-            <span className="text-sm text-gray-400">•</span>
-            <span className="text-sm text-gray-600">{scheme.ministry}</span>
-            <span className="text-sm text-gray-400">•</span>
-            <span className="text-sm text-gray-600">{scheme.state}</span>
+    <Card className="rounded-[28px] border border-[#dfeee3] bg-white/75 p-5 shadow-[0_18px_50px_rgba(20,52,30,0.06)] backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_50px_rgba(20,52,30,0.1)]" hover>
+      <div className="space-y-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="text-xl font-medium text-[#14341e]">{scheme.name}</h3>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#14341e]/65">
+              <span>{scheme.category}</span>
+              <span className="text-[#14341e]/35">•</span>
+              <span>{scheme.ministry}</span>
+              <span className="text-[#14341e]/35">•</span>
+              <span>{scheme.state}</span>
+            </div>
           </div>
+
+          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(status)}`}>
+            {matchPercentage}% match
+          </span>
         </div>
 
-        {/* Benefit */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-gray-600">Potential Benefit</p>
-          <p className="text-2xl font-bold text-brand-blue mt-1">
+        <div className="rounded-2xl border border-[#cfe9d5] bg-[#f1fff5] p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-[#14341e]/60">Potential benefit</p>
+          <p className="mt-2 text-2xl font-light text-[#14341e]">
             {formatCurrency(scheme.benefit?.amount)}
             {scheme.benefit?.frequency !== 'one-time' && (
-              <span className="text-sm text-gray-600 font-normal ml-2">/{scheme.benefit?.frequency}</span>
+              <span className="ml-2 text-sm text-[#14341e]/65">/{scheme.benefit?.frequency}</span>
             )}
           </p>
         </div>
 
-        {/* Eligibility */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Match Score</span>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
-              {matchPercentage}% Match
-            </span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-[#14341e]">Eligibility snapshot</span>
+            <span className="text-xs uppercase tracking-[0.16em] text-[#177e4f]">Live</span>
           </div>
+
           <div className="space-y-2">
             {eligibility?.matchedRules?.slice(0, 3).map((rule, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
-                <span className="text-sm text-gray-700 capitalize">
-                  {rule.field.replace(/([A-Z])/g, ' $1')}
-                </span>
+              <div key={index} className="flex items-center gap-2 text-sm text-[#14341e]/75">
+                <CheckCircle2 size={16} className="text-[#177e4f] flex-shrink-0" />
+                <span className="capitalize">{rule.field.replace(/([A-Z])/g, ' $1')}</span>
               </div>
             ))}
-            {eligibility?.failedRules?.length > 0 && (
+
+            {eligibility?.failedRules?.length > 0 &&
               eligibility.failedRules.slice(0, 2).map((rule, index) => (
-                <div key={`failed-${index}`} className="flex items-center gap-2">
+                <div key={`failed-${index}`} className="flex items-center gap-2 text-sm text-amber-700">
                   <AlertCircle size={16} className="text-amber-600 flex-shrink-0" />
-                  <span className="text-sm text-amber-700 capitalize">
-                    {rule.field.replace(/([A-Z])/g, ' $1')} needed
-                  </span>
+                  <span className="capitalize">{rule.field.replace(/([A-Z])/g, ' $1')} needed</span>
                 </div>
-              ))
-            )}
+              ))}
           </div>
         </div>
 
-        {/* Documents */}
         {scheme.documents?.length > 0 && (
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">Documents Required: {scheme.documents.length}</p>
+            <p className="mb-2 text-sm font-medium text-[#14341e]">Documents required: {scheme.documents.length}</p>
             <div className="flex flex-wrap gap-2">
               {scheme.documents.slice(0, 3).map((doc, index) => (
-                <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                <span key={index} className="rounded-full bg-[#edf7ef] px-2.5 py-1 text-xs text-[#14341e]/70">
                   {doc}
                 </span>
               ))}
               {scheme.documents.length > 3 && (
-                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                <span className="rounded-full bg-[#edf7ef] px-2.5 py-1 text-xs text-[#14341e]/70">
                   +{scheme.documents.length - 3} more
                 </span>
               )}
@@ -92,23 +90,26 @@ export const SchemeCard = ({
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex gap-2 pt-4 border-t border-gray-200">
+        <div className="flex gap-2 border-t border-[#dfeee3] pt-4">
           <button
             onClick={onViewDetails}
-            className="flex-1 flex items-center justify-center gap-2 bg-brand-blue text-white px-4 py-2 rounded-lg hover:bg-brand-navy transition-colors"
+            className="flex-1 rounded-full bg-[#177e4f] px-4 py-2.5 text-sm text-white transition hover:bg-[#14341e]"
           >
-            View Details
-            <ArrowRight size={16} />
+            <span className="inline-flex items-center justify-center gap-2">
+              View details
+              <ArrowRight size={15} className="text-[#caffd5]" />
+            </span>
           </button>
+
           <button
             onClick={onSave}
-            className={`px-4 py-2 rounded-lg border transition-colors ${
+            className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm transition ${
               isSaved
-                ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                ? 'border-[#a8d2b5] bg-[#edf7ef] text-[#177e4f] hover:bg-[#e0f5e7]'
+                : 'border-[#cfe9d5] bg-[#f7fbf8] text-[#14341e]/80 hover:bg-white'
             }`}
           >
+            {isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
             {isSaved ? 'Saved' : 'Save'}
           </button>
         </div>

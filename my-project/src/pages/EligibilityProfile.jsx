@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Navbar, Sidebar, Button, Input, Select } from '../components';
+import { Navbar, Sidebar } from '../components';
 import { useProfile } from '../contexts/ProfileContext';
 import { schemeService } from '../services/schemeService';
+import { Sparkles, ArrowRight, ShieldCheck } from 'lucide-react';
+import stackedPeaks from '../assets/stacked-peaks-haikei.svg';
+import './EligibilityProfile.css';
 
 export const EligibilityProfile = () => {
   const navigate = useNavigate();
@@ -20,7 +23,7 @@ export const EligibilityProfile = () => {
   });
 
   const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCheckEligibility = async (e) => {
@@ -35,135 +38,169 @@ export const EligibilityProfile = () => {
       state: formData.state
     };
 
-    // 1. Sync to global context for Dashboard consumption
     if (updateProfile) {
       updateProfile(userProfile);
     }
 
     try {
-      // 2. Fetch directly from Firestore service
       const result = await schemeService.getEligibleSchemes(userProfile);
       if (result.success) {
-        setEligibleSchemes(result.data);
+        setEligibleSchemes(result.data || []);
       }
     } catch (error) {
-      console.error("Error evaluating eligibility:", error);
+      console.error('Error evaluating eligibility:', error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-[#c9f3ce] text-[#14341e] font-sans">
+    <div className="eligibility-page-canvas flex min-h-screen w-full font-eligibility selection:bg-[#2fe066] selection:text-[#061b0d] relative overflow-x-hidden">
+      <div className="absolute bottom-0 left-0 w-full pointer-events-none -z-10 leading-none">
+        <img
+          src={stackedPeaks}
+          alt=""
+          aria-hidden="true"
+          className="w-full h-auto max-h-[300px] object-cover object-bottom opacity-20 mix-blend-multiply"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#c2f0c8]/60 to-transparent" />
+      </div>
+
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      
+      <div className="flex-1 flex flex-col min-w-0 z-10">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Eligibility Profile" />
 
-        <main className="flex-1 p-6 md:p-12 overflow-auto">
+        <main className="flex-1 overflow-y-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-8 sm:py-10">
           <div className="max-w-4xl mx-auto space-y-8">
+            
+            {/* Header */}
             <div>
-              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Demographics</span>
-              <h1 className="text-3xl font-light text-[#14341e] tracking-tight mt-1">Check Your Scheme Eligibility</h1>
-              <p className="text-sm text-[#14341e]/70 mt-1 font-light">
-                Enter your demographic details to discover government benefits tailored specifically to you.
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#177e4f]/15 text-[#061b0d] text-xs font-bold uppercase tracking-wider mb-2">
+                <Sparkles size={13} className="text-[#177e4f]" />
+                <span>On-Device Criteria Processing</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b0d] tracking-tight">
+                Evaluate Scheme Eligibility
+              </h1>
+              <p className="text-xs sm:text-sm font-medium text-[#0a2e14] mt-1">
+                Enter demographic parameters to trigger local algorithmic matching without third-party data tracking.
               </p>
             </div>
 
             {/* Profile Input Form */}
-            <form onSubmit={handleCheckEligibility} className="bg-white/50 backdrop-blur-md rounded-3xl p-8 border border-white/80 shadow-sm space-y-6">
+            <form onSubmit={handleCheckEligibility} className="eligibility-glass-card rounded-[2.5rem] p-8 sm:p-10 space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
-                <Input
-                  label="Age"
-                  type="number"
-                  placeholder="e.g. 25"
-                  value={formData.age}
-                  onChange={(e) => handleChange('age', e.target.value)}
-                  required
-                />
-                <Input
-                  label="Annual Family Income (₹)"
-                  type="number"
-                  placeholder="e.g. 150000"
-                  value={formData.income}
-                  onChange={(e) => handleChange('income', e.target.value)}
-                  required
-                />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#0a2e14] block">Age (Completed Years)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 25"
+                    value={formData.age}
+                    onChange={(e) => handleChange('age', e.target.value)}
+                    className="eligibility-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#0a2e14] block">Annual Household Income (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 150000"
+                    value={formData.income}
+                    onChange={(e) => handleChange('income', e.target.value)}
+                    className="eligibility-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
+                    required
+                  />
+                </div>
               </div>
 
               <div className="grid md:grid-cols-3 gap-6">
-                <Select
-                  label="Gender"
-                  value={formData.gender}
-                  onChange={(e) => handleChange('gender', e.target.value)}
-                  options={[
-                    { label: 'All / Any', value: 'All' },
-                    { label: 'Female', value: 'Female' },
-                    { label: 'Male', value: 'Male' },
-                    { label: 'Other', value: 'Other' }
-                  ]}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#0a2e14] block">Gender</label>
+                  <select
+                    value={formData.gender}
+                    onChange={(e) => handleChange('gender', e.target.value)}
+                    className="eligibility-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
+                  >
+                    <option value="All">All / Any</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
 
-                <Select
-                  label="Category / Caste"
-                  value={formData.caste}
-                  onChange={(e) => handleChange('caste', e.target.value)}
-                  options={[
-                    { label: 'General / All', value: 'All' },
-                    { label: 'OBC', value: 'OBC' },
-                    { label: 'SC', value: 'SC' },
-                    { label: 'ST', value: 'ST' }
-                  ]}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#0a2e14] block">Category / Social Class</label>
+                  <select
+                    value={formData.caste}
+                    onChange={(e) => handleChange('caste', e.target.value)}
+                    className="eligibility-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
+                  >
+                    <option value="All">General / All</option>
+                    <option value="OBC">OBC</option>
+                    <option value="SC">SC</option>
+                    <option value="ST">ST</option>
+                  </select>
+                </div>
 
-                <Select
-                  label="State"
-                  value={formData.state}
-                  onChange={(e) => handleChange('state', e.target.value)}
-                  options={[
-                    { label: 'All States / Pan-India', value: 'All' },
-                    { label: 'Karnataka', value: 'Karnataka' },
-                    { label: 'Maharashtra', value: 'Maharashtra' },
-                    { label: 'Delhi', value: 'Delhi' }
-                  ]}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#0a2e14] block">State Jurisdiction</label>
+                  <select
+                    value={formData.state}
+                    onChange={(e) => handleChange('state', e.target.value)}
+                    className="eligibility-input w-full px-4 py-3 rounded-xl text-xs font-semibold"
+                  >
+                    <option value="All">All States / Pan-India</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                  </select>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 rounded-full bg-[#177e4f] text-white font-medium hover:bg-[#14341e] transition shadow-sm disabled:opacity-50"
+                className="w-full py-4 rounded-xl bg-[#061b0d] hover:bg-[#177e4f] text-[#c9f3ce] hover:text-white text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {loading ? 'Evaluating Eligibility...' : 'Find Matching Schemes'}
+                <span>{loading ? 'Evaluating Matched Policies...' : 'Execute Eligibility Match'}</span>
+                {!loading && <ArrowRight size={14} className="text-[#4ae278]" />}
               </button>
             </form>
 
             {/* Results Display */}
             {eligibleSchemes !== null && (
-              <div className="space-y-4 pt-4">
-                <h2 className="text-2xl font-light text-[#14341e]">
-                  Matching Benefits ({eligibleSchemes.length})
+              <div className="space-y-4 pt-2">
+                <h2 className="text-xl font-extrabold text-[#061b0d] tracking-tight">
+                  Evaluated Entitlements ({eligibleSchemes.length})
                 </h2>
 
                 {eligibleSchemes.length === 0 ? (
-                  <div className="bg-white/40 backdrop-blur-md border border-white/70 rounded-3xl p-8 text-center">
-                    <p className="text-[#14341e]/80 font-light">
-                      No matching schemes found for the given criteria. Try adjusting your income or location parameters.
+                  <div className="eligibility-glass-card rounded-[2rem] p-8 text-center">
+                    <p className="text-sm font-semibold text-[#0a2e14]">
+                      No direct statutory matches under the current criteria. Adjust income or location thresholds to expand screening.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {eligibleSchemes.map((scheme) => (
-                      <div key={scheme.id} className="bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/80 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div key={scheme.id} className="eligibility-glass-card rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                          <span className="inline-block bg-[#177e4f]/10 text-[#177e4f] text-xs px-3 py-1 rounded-full font-semibold uppercase mb-2">
+                          <span className="inline-block bg-[#177e4f]/15 text-[#177e4f] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-2">
                             {scheme.category || 'General'}
                           </span>
-                          <h3 className="text-xl font-bold text-[#14341e]">{scheme.name}</h3>
-                          <p className="text-[#14341e]/70 mt-1 text-sm font-light">{scheme.benefits || scheme.description}</p>
+                          <h3 className="text-lg font-bold text-[#061b0d]">{scheme.name}</h3>
+                          <p className="text-xs font-semibold text-[#0a2e14]/75 mt-1 leading-relaxed">
+                            {scheme.benefits || scheme.description}
+                          </p>
                         </div>
                         <button
                           onClick={() => navigate(`/app/schemes/${scheme.id}`)}
-                          className="px-6 py-2.5 rounded-full bg-[#177e4f] text-white text-xs font-normal hover:bg-[#14341e] transition shadow-sm whitespace-nowrap"
+                          className="px-5 py-2.5 rounded-full bg-[#177e4f] hover:bg-[#061b0d] text-white text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap flex-shrink-0"
                         >
                           View Details & Apply
                         </button>
@@ -173,6 +210,7 @@ export const EligibilityProfile = () => {
                 )}
               </div>
             )}
+
           </div>
         </main>
       </div>

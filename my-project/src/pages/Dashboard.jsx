@@ -15,6 +15,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
+import dataAtWorkIllustration from '../assets/undraw_data-at-work_3tbf.svg';
 import './Dashboard.css';
 
 export const Dashboard = () => {
@@ -121,12 +122,22 @@ export const Dashboard = () => {
                 <Sparkles size={14} className="text-[#177e4f]" />
                 <span>Eligibility Assessment Active</span>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b0d] tracking-tight">
-                {greeting}, {user?.name?.split(' ')[0] || 'Citizen'}
-              </h1>
-              <p className="text-sm sm:text-base text-[#0a2e14] font-medium mt-1">
-                Verified entitlements matched against current state and national directives.
-              </p>
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b0d] tracking-tight">
+                    {greeting}, {user?.name?.split(' ')[0] || 'Citizen'}
+                  </h1>
+                  <p className="text-sm sm:text-base text-[#0a2e14] font-medium mt-1">
+                    Verified entitlements matched against current state and national directives.
+                  </p>
+                </div>
+
+                <img
+                  src={dataAtWorkIllustration}
+                  alt="Data at work illustration"
+                  className="w-full max-w-[220px] sm:max-w-[260px] lg:max-w-[300px] h-auto opacity-90 drop-shadow-[0_18px_40px_rgba(23,126,79,0.12)]"
+                />
+              </div>
             </div>
 
             {error && (

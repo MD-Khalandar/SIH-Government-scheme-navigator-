@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.font-find-benefits {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #061b0d;
+}
+
+.find-benefits-page-canvas {
+  background-color: #c2f0c8;
+  background-image: url('../assets/blurry-gradient-haikei.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #061b0d;
+}
+
+.find-benefits-glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 16px 36px -12px rgba(6, 27, 13, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+.find-benefits-input {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(6, 27, 13, 0.18);
+  color: #061b0d;
+  transition: all 0.2s ease;
+}
+
+.find-benefits-input:focus {
+  border-color: #177e4f;
+  box-shadow: 0 0 0 3px rgba(23, 126, 79, 0.2);
+  outline: none;
+}
+
+.find-benefits-badge {
+  background: rgba(23, 126, 79, 0.12);
+  border: 1px solid rgba(23, 126, 79, 0.25);
+  color: #061b0d;
+}

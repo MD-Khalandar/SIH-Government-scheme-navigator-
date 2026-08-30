@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Navbar, Sidebar, Card, Button, ProgressBar, EmptyState } from '../components';
+import { Navbar, Sidebar, ProgressBar, EmptyState } from '../components';
 import { documentService } from '../services/documentService';
-import { FileText, CheckCircle2 } from 'lucide-react';
+import { FileText, CheckCircle2, Sparkles } from 'lucide-react';
+import dataAtWorkIllustration from '../assets/undraw_data-at-work_3tbf.svg';
+import './Dashboard.css';
 
 export const Documents = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -15,7 +17,7 @@ export const Documents = () => {
   const loadDocuments = async () => {
     try {
       const res = await documentService.getDocuments();
-      setDocuments(res.data);
+      setDocuments(res.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -25,7 +27,7 @@ export const Documents = () => {
 
   const handleToggleDocument = async (docId) => {
     try {
-      const doc = documents.find(d => d.id === docId);
+      const doc = documents.find((d) => d.id === docId);
       await documentService.updateDocumentStatus(docId, !doc.ready);
       loadDocuments();
     } catch (err) {
@@ -33,65 +35,91 @@ export const Documents = () => {
     }
   };
 
-  const readyCount = documents.filter(d => d.ready).length;
+  const readyCount = documents.filter((d) => d.ready).length;
   const readiness = documents.length > 0 ? (readyCount / documents.length) * 100 : 0;
 
   return (
-    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
+    <div className="dashboard-page-canvas flex min-h-screen w-full font-dashboard selection:bg-[#2fe066] selection:text-[#061b0d] relative overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      
+      <div className="flex-1 flex flex-col min-w-0 z-10">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Documents" />
-        <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
-          <div className="w-full">
-            <div className="mb-10">
-              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Verification</span>
-              <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1 mb-6">Document Checklist</h1>
-              
-              <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-normal text-[#14341e]">Document Readiness</p>
-                  <span className="text-xs font-mono text-[#177e4f]">{readyCount} of {documents.length} verified</span>
+        
+        <main className="flex-1 overflow-y-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-8 sm:py-10">
+          <div className="mx-auto max-w-6xl">
+            
+            {/* Header */}
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#177e4f]/15 text-[#061b0d] text-xs font-bold uppercase tracking-wider mb-2">
+                  <Sparkles size={13} className="text-[#177e4f]" />
+                  <span>Verification Prerequisites</span>
                 </div>
-                <ProgressBar value={readiness} />
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b0d] tracking-tight">
+                  Document Checklist
+                </h1>
+                <p className="text-xs sm:text-sm font-medium text-[#0a2e14] mt-1">
+                  Maintain and verify supporting proofs required across matched government schemes.
+                </p>
               </div>
+
+              <img
+                src={dataAtWorkIllustration}
+                alt="Data at work illustration"
+                className="h-20 w-auto opacity-90 sm:h-24"
+              />
             </div>
 
+            {/* Readiness Card */}
+            <div className="documents-glass-card rounded-[2rem] p-6 sm:p-8 mb-8 border border-[#a8d2b5] bg-white/55 shadow-sm shadow-[#177e4f]/5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-extrabold text-[#061b0d]">Prerequisite Readiness</p>
+                <span className="text-xs font-bold text-[#177e4f]">
+                  {readyCount} of {documents.length} Records Marked Ready
+                </span>
+              </div>
+              <ProgressBar value={readiness} />
+            </div>
+
+            {/* Document Items */}
             {documents.length === 0 ? (
-              <div className="rounded-3xl bg-white/40 backdrop-blur-xl border border-white/70 p-12 text-center">
+              <div className="documents-glass-card rounded-[2rem] p-12 text-center border border-[#a8d2b5] bg-white/55 shadow-sm shadow-[#177e4f]/5">
                 <EmptyState
                   icon={FileText}
-                  title="No documents required"
-                  description="Documents requested by selected schemes will populate here automatically"
+                  title="No documents populated"
+                  description="Documents required by saved or recommended schemes will automatically display here."
                 />
               </div>
             ) : (
               <div className="grid gap-4">
-                {documents.map(doc => (
-                  <div key={doc.id} className="rounded-2xl bg-white/50 backdrop-blur-md border border-white/70 p-5 flex items-center justify-between transition hover:bg-white/70">
+                {documents.map((doc) => (
+                  <div key={doc.id} className="document-item-card rounded-2xl p-5 flex items-center justify-between border border-[#a8d2b5] bg-white/60 shadow-sm shadow-[#177e4f]/5">
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-[#177e4f]/10 text-[#177e4f] flex items-center justify-center">
-                        <FileText size={18} strokeWidth={1.5} />
+                      <div className="w-10 h-10 rounded-xl bg-[#177e4f]/15 text-[#177e4f] flex items-center justify-center flex-shrink-0">
+                        <FileText size={18} strokeWidth={2} />
                       </div>
                       <div>
-                        <p className="text-sm font-normal text-[#14341e]">{doc.name}</p>
-                        <p className="text-xs text-[#14341e]/50 font-light">
-                          {doc.ready ? 'Marked Ready' : 'Pending Verification'}
+                        <p className="text-sm font-bold text-[#061b0d]">{doc.name}</p>
+                        <p className="text-xs font-semibold text-[#0a2e14]/65 mt-0.5">
+                          {doc.ready ? 'Marked Ready for Submission' : 'Pending Citizen Verification'}
                         </p>
                       </div>
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                    
+                    <label className="flex items-center gap-2 cursor-pointer bg-white/80 px-4 py-2 rounded-full border border-[#061b0d]/15">
                       <input
                         type="checkbox"
                         checked={doc.ready}
                         onChange={() => handleToggleDocument(doc.id)}
-                        className="w-4 h-4 rounded text-[#177e4f] focus:ring-[#177e4f] border-[#a9c7b1]"
+                        className="w-4 h-4 rounded text-[#177e4f] focus:ring-[#177e4f] border-[#061b0d]/30"
                       />
-                      <span className="text-xs font-light text-[#14341e]/70">Ready</span>
+                      <span className="text-xs font-bold text-[#061b0d]">Ready</span>
                     </label>
                   </div>
                 ))}
               </div>
             )}
+
           </div>
         </main>
       </div>

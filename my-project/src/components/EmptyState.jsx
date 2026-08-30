@@ -8,20 +8,23 @@ export const EmptyState = ({
   actionLabel = 'Get Started'
 }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-16 px-4">
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       {Icon && (
-        <div className="bg-gray-100 p-4 rounded-full mb-4">
-          <Icon size={48} className="text-gray-400" />
+        <div className="mb-5 rounded-full border border-[#cfe9d5] bg-[#eefcf2] p-4 shadow-sm">
+          <Icon size={42} className="text-[#177e4f]" />
         </div>
       )}
-      <h2 className="text-2xl font-bold text-gray-900 text-center">{title}</h2>
+
+      <h2 className="text-2xl font-light tracking-tight text-[#14341e]">{title}</h2>
+
       {description && (
-        <p className="text-gray-600 text-center mt-2 max-w-sm">{description}</p>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-[#14341e]/70">{description}</p>
       )}
+
       {action && (
         <button
           onClick={action}
-          className="mt-6 px-6 py-2.5 bg-brand-blue text-white rounded-lg hover:bg-brand-navy transition-colors font-medium"
+          className="mt-6 rounded-full bg-[#177e4f] px-6 py-2.5 text-sm text-white transition hover:bg-[#14341e]"
         >
           {actionLabel}
         </button>
