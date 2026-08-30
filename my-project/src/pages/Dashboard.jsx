@@ -29,32 +29,24 @@ export const Dashboard = () => {
     try {
       // 1. Fetch schemes and saved schemes with safeguards
       const schemesRes = await schemeService.getSchemes();
-      const savedRes = await schemeService.getSavedSchemes();
-      setSavedSchemes(savedRes.data.map(s => s.id));
+      const savedRes = await schemeService.getSavedSchemes(user?.uid);
+
+      const allSchemes = Array.isArray(schemesRes?.data) ? schemesRes.data : [];
+      const savedList = Array.isArray(savedRes?.data) ? savedRes.data.map(s => s.schemeId || s.id) : [];
+      setSavedSchemes(savedList);
 
       // 2. Format user profile
       const userProfile = {
-        ...demoProfile,
-        age: profile?.age ?? demoProfile.age,
-        gender: profile?.gender ?? demoProfile.gender,
-        state: profile?.state ?? demoProfile.state,
-        district: profile?.district ?? demoProfile.district,
-        urban: profile?.urban ?? demoProfile.urban,
-        income: profile?.income ?? demoProfile.income,
-        socialCategory: profile?.socialCategory ?? demoProfile.socialCategory,
-        student: profile?.studying === 'yes' || profile?.occupation === 'student' || demoProfile.student,
-        employmentStatus: profile?.occupation ?? demoProfile.occupation,
-        occupation: profile?.occupation ?? demoProfile.occupation,
-        ownLand: profile?.ownLand === 'yes' || profile?.ownLand === true || demoProfile.ownLand,
-        landholding: profile?.landholding ?? demoProfile.landholding,
-        dependents: profile?.dependents ?? demoProfile.dependents,
-        children: profile?.children ?? demoProfile.children,
-        disability: profile?.disability === 'yes' || profile?.disability === true || demoProfile.disability,
-        disabilityPercentage: profile?.disability === 'yes' || profile?.disability === true ? 40 : demoProfile.disabilityPercentage,
-        lookingForWork: profile?.lookingForWork ?? demoProfile.lookingForWork,
-        ownHouse: profile?.ownHouse ?? demoProfile.ownHouse,
-        seniorCitizens: profile?.seniorCitizens ?? demoProfile.seniorCitizens,
-        bpl: profile?.bpl ?? demoProfile.bpl
+        age: profile?.age || null,
+        gender: profile?.gender || null,
+        income: profile?.income || null,
+        student: profile?.studying === 'yes',
+        employmentStatus: profile?.occupation || null,
+        occupation: profile?.occupation || null,
+        ownLand: profile?.ownLand === 'yes',
+        landholding: profile?.landholding || null,
+        disability: profile?.disability === 'yes',
+        disabilityPercentage: profile?.disability === 'yes' ? 40 : 0
       };
 
       // 3. Get eligibility summary securely
@@ -76,17 +68,16 @@ export const Dashboard = () => {
   };
 
   const handleSaveScheme = async (schemeId) => {
-    if (!user?.uid) return;
     try {
       if (savedSchemes.includes(schemeId)) {
-        await schemeService.removeSavedScheme(user.uid, schemeId);
+        await schemeService.removeSavedScheme(schemeId);
         setSavedSchemes(prev => prev.filter(id => id !== schemeId));
       } else {
-        await schemeService.saveScheme(user.uid, schemeId);
+        await schemeService.saveScheme(schemeId);
         setSavedSchemes(prev => [...prev, schemeId]);
       }
     } catch (err) {
-      console.error("Error toggling saved scheme:", err);
+      console.error(err);
     }
   };
 
@@ -140,10 +131,10 @@ export const Dashboard = () => {
                 </div>
                 <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
                   <div className="flex items-center justify-between text-amber-700 mb-3">
-                    <span className="text-xs font-light text-[#14341e]/60">Applyable</span>
-                    <CheckCircle2 size={18} />
+                    <span className="text-xs font-light text-[#14341e]/60">Needs More Info</span>
+                    <AlertCircle size={18} />
                   </div>
-                  <p className="text-3xl font-light text-[#14341e]">{summary.highMatch}</p>
+                  <p className="text-3xl font-light text-[#14341e]">{summary.needsMore}</p>
                 </div>
                 <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
                   <div className="flex items-center justify-between text-[#177e4f] mb-3">
