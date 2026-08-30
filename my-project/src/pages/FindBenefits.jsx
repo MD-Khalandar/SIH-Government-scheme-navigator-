@@ -27,6 +27,155 @@ export const FindBenefits = () => {
         return matchesQuery && matchesState && matchesCategory && matchesMinistry;
       });
       setResults(filtered);
+
+    try {
+      const { data: allSchemes } = await schemeService.getSchemes();
+      const normalizedQuery = normalizeText(searchQuery);
+      const queryTokens = normalizedQuery ? normalizedQuery.split(' ').filter(Boolean) : [];
+      const selectedFilters = {
+        ...filters,
+        state: filters.state || profile?.state || '',
+        gender: filters.gender || profile?.gender || '',
+        occupation: filters.occupation || profile?.occupation || '',
+        age: filters.age || profile?.age || '',
+        income: filters.income || profile?.income || ''
+      };
+
+      const activeFilters = Object.entries(selectedFilters).filter(([_, value]) => {
+        if (value === null || value === undefined) return false;
+        return String(value).trim() !== '';
+      });
+
+      const matchText = (value, target) => {
+        if (!target) return true;
+        const haystack = normalizeText(value || '');
+        const needle = normalizeText(target);
+        return haystack.includes(needle) || needle.includes(haystack);
+      };
+
+      const schemeScores = allSchemes.map((scheme) => {
+        const nameText = normalizeText(scheme.name);
+        const searchableText = [
+          scheme.name,
+          scheme.description,
+          scheme.category,
+          scheme.ministry,
+          scheme.state,
+          scheme.immediateCause || '',
+          ...(scheme.keywords || []),
+          ...(scheme.eligibilityCriteria || []),
+          ...(scheme.documents || [])
+        ].join(' ');
+        const haystack = normalizeText(searchableText);
+
+        let score = 0;
+
+        if (normalizedQuery) {
+          if (nameText.includes(normalizedQuery)) score += 28;
+          if (haystack.includes(normalizedQuery)) score += 12;
+          queryTokens.forEach((token) => {
+            if (nameText.includes(token)) score += 10;
+            if (haystack.includes(token)) score += 5;
+          });
+        }
+
+        if (activeFilters.length === 0 && !normalizedQuery) {
+          score = 1;
+        }
+
+        if (selectedFilters.cause) {
+          if (matchText(scheme.immediateCause, selectedFilters.cause)) score += 16;
+          if (matchText(scheme.name, selectedFilters.cause)) score += 8;
+        }
+
+        if (selectedFilters.category) {
+          if (matchText(scheme.category, selectedFilters.category)) score += 12;
+        }
+
+        if (selectedFilters.ministry) {
+          if (matchText(scheme.ministry, selectedFilters.ministry)) score += 10;
+        }
+
+        if (selectedFilters.state) {
+          if (matchText(scheme.state, selectedFilters.state) || normalizeText(scheme.state) === 'all india') score += 10;
+        }
+
+        if (selectedFilters.gender) {
+          const genderMatch = (scheme.eligibilityRules || []).some(rule => rule.field === 'gender' && normalizeText(String(rule.value)) === normalizeText(selectedFilters.gender));
+          if (genderMatch || matchText([scheme.name, scheme.description].join(' '), selectedFilters.gender)) score += 8;
+        }
+
+        if (selectedFilters.occupation) {
+          const occupationMatch = (scheme.eligibilityRules || []).some(rule => rule.field === 'occupation' && normalizeText(String(rule.value)) === normalizeText(selectedFilters.occupation));
+          if (occupationMatch || matchText([scheme.name, scheme.description].join(' '), selectedFilters.occupation)) score += 8;
+        }
+
+        if (selectedFilters.age) {
+          const ageValue = Number(selectedFilters.age);
+          const ageRules = (scheme.eligibilityRules || []).filter(rule => rule.field === 'age');
+          if (ageRules.length === 0) {
+            score += 2;
+          } else if (ageRules.some(rule => {
+            const threshold = Number(rule.value);
+            if (Number.isNaN(threshold)) return false;
+            if (rule.operator === '>=' && ageValue >= threshold) return true;
+            if (rule.operator === '<=' && ageValue <= threshold) return true;
+            if (rule.operator === '>' && ageValue > threshold) return true;
+            if (rule.operator === '<' && ageValue < threshold) return true;
+            return false;
+          })) {
+            score += 10;
+          }
+        }
+
+        if (selectedFilters.income) {
+          const incomeValue = Number(selectedFilters.income);
+          const incomeRules = (scheme.eligibilityRules || []).filter(rule => rule.field === 'income');
+          if (incomeRules.length === 0) {
+            score += 2;
+          } else if (incomeRules.some(rule => {
+            const limit = Number(rule.value);
+            if (Number.isNaN(limit)) return false;
+            if (rule.operator === '<=' && incomeValue <= limit) return true;
+            if (rule.operator === '>=' && incomeValue >= limit) return true;
+            if (rule.operator === '<' && incomeValue < limit) return true;
+            if (rule.operator === '>' && incomeValue > limit) return true;
+            return false;
+          })) {
+            score += 10;
+          }
+        }
+
+        return {
+          ...scheme,
+          matchScore: score,
+          scoreBreakdown: {
+            query: normalizedQuery,
+            filters: activeFilters.length
+          }
+        };
+      });
+
+      let resultsList = schemeScores
+        .filter((scheme) => {
+          if (!normalizedQuery && activeFilters.length === 0) return true;
+          return scheme.matchScore > 0;
+        })
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 20);
+
+      if (resultsList.length === 0 && normalizedQuery) {
+        resultsList = schemeScores
+          .filter((scheme) => {
+            const directName = normalizeText(scheme.name);
+            const tokens = queryTokens.length ? queryTokens : [normalizedQuery];
+            return tokens.some(token => directName.includes(token) || normalizeText(scheme.immediateCause || '').includes(token));
+          })
+          .sort((a, b) => b.matchScore - a.matchScore)
+          .slice(0, 8);
+      }
+
+      setResults(resultsList);
     } finally {
       setLoading(false);
     }

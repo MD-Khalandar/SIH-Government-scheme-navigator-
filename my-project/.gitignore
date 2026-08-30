@@ -9,7 +9,8 @@ lerna-debug.log*
 
 node_modules
 dist
-.env
+lol.env.download
+serviceAccountKey.json
 .env.local
 dist-ssr
 *.local
