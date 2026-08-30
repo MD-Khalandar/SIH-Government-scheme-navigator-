@@ -1,4 +1,4 @@
-import { db } from '../../firebase';
+import { db } from '../firebase';
 import { 
   collection, 
   getDocs, 
@@ -11,72 +11,52 @@ import {
 } from 'firebase/firestore';
 
 export const schemeService = {
-  // Get all schemes from Firestore
   getSchemes: async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "schemes"));
-      const schemes = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const schemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       return { success: true, data: schemes };
     } catch (error) {
       console.error("Error fetching schemes:", error);
-      return { success: false, error: error.message };
+      return { success: false, data: [], error: error.message };
     }
   },
 
-  // Get scheme by Firestore document ID
   getSchemeById: async (id) => {
     try {
       const docRef = doc(db, "schemes", id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
-      } else {
-        throw new Error("Scheme not found");
       }
+      throw new Error("Scheme not found");
     } catch (error) {
       console.error("Error fetching scheme details:", error);
       return { success: false, error: error.message };
     }
   },
 
-  // Get eligible schemes based on demographic user criteria
   getEligibleSchemes: async (userProfile) => {
     try {
       const querySnapshot = await getDocs(collection(db, "schemes"));
       const allSchemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       const eligible = allSchemes.filter(scheme => {
-        // Age filter check
         if (scheme.minAge && userProfile.age < scheme.minAge) return false;
         if (scheme.maxAge && userProfile.age > scheme.maxAge) return false;
-
-        // Income threshold check
         if (scheme.maxIncome && userProfile.income > scheme.maxIncome) return false;
-
-        // Gender check
-        if (scheme.targetGender && scheme.targetGender !== "All" && scheme.targetGender !== userProfile.gender) {
-          return false;
-        }
-
-        // State / Region check
-        if (scheme.state && scheme.state !== "All" && scheme.state !== userProfile.state) {
-          return false;
-        }
-
+        if (scheme.targetGender && scheme.targetGender !== "All" && scheme.targetGender !== userProfile.gender) return false;
+        if (scheme.state && scheme.state !== "All" && scheme.state !== userProfile.state) return false;
         return true;
       });
 
       return { success: true, data: eligible };
     } catch (error) {
       console.error("Error matching eligibility:", error);
-      return { success: false, error: error.message };
+      return { success: false, data: [], error: error.message };
     }
   },
 
-  // Search schemes in Firestore
   searchSchemes: async (searchQuery) => {
     try {
       const querySnapshot = await getDocs(collection(db, "schemes"));
@@ -91,35 +71,30 @@ export const schemeService = {
       return { success: true, data: results };
     } catch (error) {
       console.error("Error searching schemes:", error);
-      return { success: false, error: error.message };
+      return { success: false, data: [], error: error.message };
     }
   },
 
-  // Get saved schemes for a user from Firestore
+  // Added Missing Bookmark / Saved Schemes Handlers
   getSavedSchemes: async (userId) => {
     try {
-      const q = query(
-        collection(db, "saved_schemes"),
-        where("userId", "==", userId)
-      );
+      if (!userId) return { success: true, data: [] };
+      const q = query(collection(db, "saved_schemes"), where("userId", "==", userId));
       const snapshot = await getDocs(q);
       const saved = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       return { success: true, data: saved };
     } catch (error) {
       console.error("Error fetching saved schemes:", error);
-      return { success: false, error: error.message };
+      return { success: false, data: [], error: error.message };
     }
   },
 
-  // Save a scheme to Firestore
-  saveScheme: async (userId, scheme) => {
+  saveScheme: async (userId, schemeId) => {
     try {
-      const savedRef = collection(db, "saved_schemes");
-      const docRef = await addDoc(savedRef, {
+      if (!userId) return { success: false, error: "User unauthenticated" };
+      const docRef = await addDoc(collection(db, "saved_schemes"), {
         userId,
-        schemeId: scheme.id || scheme,
-        schemeName: scheme.name || "Scheme",
-        category: scheme.category || "General",
+        schemeId,
         savedAt: new Date().toISOString()
       });
       return { success: true, id: docRef.id };
@@ -129,37 +104,21 @@ export const schemeService = {
     }
   },
 
-  // Submit an application to Firestore
-  applyForScheme: async (userId, scheme) => {
+  removeSavedScheme: async (userId, schemeId) => {
     try {
-      const appsRef = collection(db, "applications");
-      const docRef = await addDoc(appsRef, {
-        userId,
-        schemeId: scheme.id,
-        schemeName: scheme.name,
-        category: scheme.category || "General",
-        status: "Submitted",
-        appliedAt: new Date().toISOString()
-      });
-      return { success: true, id: docRef.id };
-    } catch (error) {
-      console.error("Error applying for scheme:", error);
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Get user's submitted applications
-  getUserApplications: async (userId) => {
-    try {
+      if (!userId) return { success: false };
       const q = query(
-        collection(db, "applications"),
-        where("userId", "==", userId)
+        collection(db, "saved_schemes"), 
+        where("userId", "==", userId), 
+        where("schemeId", "==", schemeId)
       );
       const snapshot = await getDocs(q);
-      const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return { success: true, data: apps };
+      snapshot.docs.forEach(async (document) => {
+        await deleteDoc(doc(db, "saved_schemes", document.id));
+      });
+      return { success: true };
     } catch (error) {
-      console.error("Error fetching applications:", error);
+      console.error("Error removing saved scheme:", error);
       return { success: false, error: error.message };
     }
   }

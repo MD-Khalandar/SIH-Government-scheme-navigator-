@@ -18,6 +18,9 @@ export const hasFirebaseConfig = Boolean(
   firebaseConfig.appId
 );
 
+// Alias exported specifically for AuthContext.jsx
+export const isFirebaseConfigured = hasFirebaseConfig;
+
 export let auth = null;
 export let db = null;
 export let firebaseConfigurationError = null;
