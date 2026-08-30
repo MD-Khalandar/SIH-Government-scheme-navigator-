@@ -11,16 +11,19 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const hasFirebaseConfig = Boolean(
+export const hasFirebaseConfig = Boolean(
   firebaseConfig.apiKey &&
   firebaseConfig.authDomain &&
   firebaseConfig.projectId &&
   firebaseConfig.appId
 );
 
-let auth = null;
-let db = null;
-let firebaseConfigurationError = null;
+// Alias exported specifically for AuthContext.jsx
+export const isFirebaseConfigured = hasFirebaseConfig;
+
+export let auth = null;
+export let db = null;
+export let firebaseConfigurationError = null;
 
 if (hasFirebaseConfig) {
   try {
@@ -29,9 +32,6 @@ if (hasFirebaseConfig) {
     db = getFirestore(firebaseApp);
   } catch (error) {
     firebaseConfigurationError = error;
+    console.error("Firebase Initialization Error:", error);
   }
 }
-
-export { auth, db };
-export const isFirebaseConfigured = Boolean(auth);
-export { firebaseConfigurationError };

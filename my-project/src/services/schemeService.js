@@ -1,127 +1,125 @@
-// Scheme service - Mock implementation
-// Replace with actual API calls later
-
-import { mockSchemes } from '../data/mockSchemes.js';
+import { db } from "../../firebase";
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  query, 
+  where, 
+  deleteDoc 
+} from 'firebase/firestore';
 
 export const schemeService = {
-  // Get all schemes
   getSchemes: async () => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return { success: true, data: mockSchemes };
+    try {
+      const querySnapshot = await getDocs(collection(db, "schemes"));
+      const schemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return { success: true, data: schemes };
+    } catch (error) {
+      console.error("Error fetching schemes:", error);
+      return { success: false, data: [], error: error.message };
+    }
   },
 
-  // Get scheme by ID
   getSchemeById: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    const scheme = mockSchemes.find(s => String(s.id) === String(id));
-    
-    if (!scheme) {
+    try {
+      const docRef = doc(db, "schemes", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+      }
       throw new Error("Scheme not found");
+    } catch (error) {
+      console.error("Error fetching scheme details:", error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true, data: scheme };
   },
 
-  // Search schemes
-  searchSchemes: async (query) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const searchQuery = query.toLowerCase();
-    const results = mockSchemes.filter(scheme => 
-      scheme.name.toLowerCase().includes(searchQuery) ||
-      scheme.description.toLowerCase().includes(searchQuery) ||
-      scheme.category.toLowerCase().includes(searchQuery) ||
-      scheme.ministry.toLowerCase().includes(searchQuery)
-    );
-    
-    return { success: true, data: results };
+  getEligibleSchemes: async (userProfile) => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "schemes"));
+      const allSchemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const eligible = allSchemes.filter(scheme => {
+        if (scheme.minAge && userProfile.age < scheme.minAge) return false;
+        if (scheme.maxAge && userProfile.age > scheme.maxAge) return false;
+        if (scheme.maxIncome && userProfile.income > scheme.maxIncome) return false;
+        if (scheme.targetGender && scheme.targetGender !== "All" && scheme.targetGender !== userProfile.gender) return false;
+        if (scheme.state && scheme.state !== "All" && scheme.state !== userProfile.state) return false;
+        return true;
+      });
+
+      return { success: true, data: eligible };
+    } catch (error) {
+      console.error("Error matching eligibility:", error);
+      return { success: false, data: [], error: error.message };
+    }
   },
 
-  // Filter schemes
-  filterSchemes: async (filters) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    let results = mockSchemes;
-    
-    if (filters.state && filters.state !== "all") {
-      results = results.filter(s => s.state === filters.state || s.state === "All India");
+  searchSchemes: async (searchQuery) => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "schemes"));
+      const term = searchQuery.toLowerCase();
+      const results = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(scheme => 
+          (scheme.name && scheme.name.toLowerCase().includes(term)) ||
+          (scheme.description && scheme.description.toLowerCase().includes(term)) ||
+          (scheme.category && scheme.category.toLowerCase().includes(term))
+        );
+      return { success: true, data: results };
+    } catch (error) {
+      console.error("Error searching schemes:", error);
+      return { success: false, data: [], error: error.message };
     }
-    
-    if (filters.category && filters.category !== "all") {
-      results = results.filter(s => s.category === filters.category);
-    }
-    
-    if (filters.ministry && filters.ministry !== "all") {
-      results = results.filter(s => s.ministry === filters.ministry);
-    }
-    
-    if (filters.lifeEvent && filters.lifeEvent !== "all") {
-      results = results.filter(s => s.lifeEvents.includes(filters.lifeEvent));
-    }
-    
-    return { success: true, data: results };
   },
 
-  // Get schemes by life event
-  getSchemesByLifeEvent: async (lifeEvent) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const results = mockSchemes.filter(scheme => 
-      scheme.lifeEvents.includes(lifeEvent)
-    );
-    
-    return { success: true, data: results };
-  },
-
-  // Get saved schemes for user
-  getSavedSchemes: async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    if (!saved) {
-      return { success: true, data: [] };
+  getSavedSchemes: async (userId) => {
+    try {
+      if (!userId) return { success: true, data: [] };
+      const q = query(collection(db, "saved_schemes"), where("userId", "==", userId));
+      const snapshot = await getDocs(q);
+      const saved = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return { success: true, data: saved };
+    } catch (error) {
+      console.error("Error fetching saved schemes:", error);
+      return { success: false, data: [], error: error.message };
     }
-    
-    const savedIds = JSON.parse(saved);
-    const savedSchemes = mockSchemes.filter(s => savedIds.includes(s.id));
-    
-    return { success: true, data: savedSchemes };
   },
 
-  // Save a scheme
-  saveScheme: async (schemeId) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    let savedIds = saved ? JSON.parse(saved) : [];
-    
-    if (!savedIds.includes(schemeId)) {
-      savedIds.push(schemeId);
-      localStorage.setItem("sahayak_saved_schemes", JSON.stringify(savedIds));
+  saveScheme: async (userId, schemeId) => {
+    try {
+      if (!userId) return { success: false, error: "User unauthenticated" };
+      const docRef = await addDoc(collection(db, "saved_schemes"), {
+        userId,
+        schemeId,
+        savedAt: new Date().toISOString()
+      });
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error("Error saving scheme:", error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true };
   },
 
-  // Remove saved scheme
-  removeSavedScheme: async (schemeId) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    if (saved) {
-      const savedIds = JSON.parse(saved).filter(id => id !== schemeId);
-      localStorage.setItem("sahayak_saved_schemes", JSON.stringify(savedIds));
+  removeSavedScheme: async (userId, schemeId) => {
+    try {
+      if (!userId) return { success: false };
+      const q = query(
+        collection(db, "saved_schemes"), 
+        where("userId", "==", userId), 
+        where("schemeId", "==", schemeId)
+      );
+      const snapshot = await getDocs(q);
+      snapshot.docs.forEach(async (document) => {
+        await deleteDoc(doc(db, "saved_schemes", document.id));
+      });
+      return { success: true };
+    } catch (error) {
+      console.error("Error removing saved scheme:", error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true };
-  },
-
-  // Check if scheme is saved
-  isSchemeSaved: async (schemeId) => {
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    if (!saved) return false;
-    return JSON.parse(saved).includes(schemeId);
   }
 };
 
