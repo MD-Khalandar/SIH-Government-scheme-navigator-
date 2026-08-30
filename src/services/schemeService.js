@@ -1,127 +1,167 @@
-// Scheme service - Mock implementation
-// Replace with actual API calls later
-
-import { mockSchemes } from '../data/mockSchemes.js';
+import { db } from '../firebase';
+import { 
+  collection, 
+  getDocs, 
+  getDoc, 
+  doc, 
+  addDoc, 
+  query, 
+  where, 
+  deleteDoc 
+} from 'firebase/firestore';
 
 export const schemeService = {
-  // Get all schemes
+  // Get all schemes from Firestore
   getSchemes: async () => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return { success: true, data: mockSchemes };
+    try {
+      const querySnapshot = await getDocs(collection(db, "schemes"));
+      const schemes = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      return { success: true, data: schemes };
+    } catch (error) {
+      console.error("Error fetching schemes:", error);
+      return { success: false, error: error.message };
+    }
   },
 
-  // Get scheme by ID
+  // Get scheme by Firestore document ID
   getSchemeById: async (id) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    const scheme = mockSchemes.find(s => String(s.id) === String(id));
-    
-    if (!scheme) {
-      throw new Error("Scheme not found");
+    try {
+      const docRef = doc(db, "schemes", id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { success: true, data: { id: docSnap.id, ...docSnap.data() } };
+      } else {
+        throw new Error("Scheme not found");
+      }
+    } catch (error) {
+      console.error("Error fetching scheme details:", error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true, data: scheme };
   },
 
-  // Search schemes
-  searchSchemes: async (query) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const searchQuery = query.toLowerCase();
-    const results = mockSchemes.filter(scheme => 
-      scheme.name.toLowerCase().includes(searchQuery) ||
-      scheme.description.toLowerCase().includes(searchQuery) ||
-      scheme.category.toLowerCase().includes(searchQuery) ||
-      scheme.ministry.toLowerCase().includes(searchQuery)
-    );
-    
-    return { success: true, data: results };
+  // Get eligible schemes based on demographic user criteria
+  getEligibleSchemes: async (userProfile) => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "schemes"));
+      const allSchemes = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const eligible = allSchemes.filter(scheme => {
+        // Age filter check
+        if (scheme.minAge && userProfile.age < scheme.minAge) return false;
+        if (scheme.maxAge && userProfile.age > scheme.maxAge) return false;
+
+        // Income threshold check
+        if (scheme.maxIncome && userProfile.income > scheme.maxIncome) return false;
+
+        // Gender check
+        if (scheme.targetGender && scheme.targetGender !== "All" && scheme.targetGender !== userProfile.gender) {
+          return false;
+        }
+
+        // State / Region check
+        if (scheme.state && scheme.state !== "All" && scheme.state !== userProfile.state) {
+          return false;
+        }
+
+        return true;
+      });
+
+      return { success: true, data: eligible };
+    } catch (error) {
+      console.error("Error matching eligibility:", error);
+      return { success: false, error: error.message };
+    }
   },
 
-  // Filter schemes
-  filterSchemes: async (filters) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    let results = mockSchemes;
-    
-    if (filters.state && filters.state !== "all") {
-      results = results.filter(s => s.state === filters.state || s.state === "All India");
+  // Search schemes in Firestore
+  searchSchemes: async (searchQuery) => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "schemes"));
+      const term = searchQuery.toLowerCase();
+      const results = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(scheme => 
+          (scheme.name && scheme.name.toLowerCase().includes(term)) ||
+          (scheme.description && scheme.description.toLowerCase().includes(term)) ||
+          (scheme.category && scheme.category.toLowerCase().includes(term))
+        );
+      return { success: true, data: results };
+    } catch (error) {
+      console.error("Error searching schemes:", error);
+      return { success: false, error: error.message };
     }
-    
-    if (filters.category && filters.category !== "all") {
-      results = results.filter(s => s.category === filters.category);
-    }
-    
-    if (filters.ministry && filters.ministry !== "all") {
-      results = results.filter(s => s.ministry === filters.ministry);
-    }
-    
-    if (filters.lifeEvent && filters.lifeEvent !== "all") {
-      results = results.filter(s => s.lifeEvents.includes(filters.lifeEvent));
-    }
-    
-    return { success: true, data: results };
   },
 
-  // Get schemes by life event
-  getSchemesByLifeEvent: async (lifeEvent) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const results = mockSchemes.filter(scheme => 
-      scheme.lifeEvents.includes(lifeEvent)
-    );
-    
-    return { success: true, data: results };
-  },
-
-  // Get saved schemes for user
-  getSavedSchemes: async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    if (!saved) {
-      return { success: true, data: [] };
+  // Get saved schemes for a user from Firestore
+  getSavedSchemes: async (userId) => {
+    try {
+      const q = query(
+        collection(db, "saved_schemes"),
+        where("userId", "==", userId)
+      );
+      const snapshot = await getDocs(q);
+      const saved = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return { success: true, data: saved };
+    } catch (error) {
+      console.error("Error fetching saved schemes:", error);
+      return { success: false, error: error.message };
     }
-    
-    const savedIds = JSON.parse(saved);
-    const savedSchemes = mockSchemes.filter(s => savedIds.includes(s.id));
-    
-    return { success: true, data: savedSchemes };
   },
 
-  // Save a scheme
-  saveScheme: async (schemeId) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    let savedIds = saved ? JSON.parse(saved) : [];
-    
-    if (!savedIds.includes(schemeId)) {
-      savedIds.push(schemeId);
-      localStorage.setItem("sahayak_saved_schemes", JSON.stringify(savedIds));
+  // Save a scheme to Firestore
+  saveScheme: async (userId, scheme) => {
+    try {
+      const savedRef = collection(db, "saved_schemes");
+      const docRef = await addDoc(savedRef, {
+        userId,
+        schemeId: scheme.id || scheme,
+        schemeName: scheme.name || "Scheme",
+        category: scheme.category || "General",
+        savedAt: new Date().toISOString()
+      });
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error("Error saving scheme:", error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true };
   },
 
-  // Remove saved scheme
-  removeSavedScheme: async (schemeId) => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    if (saved) {
-      const savedIds = JSON.parse(saved).filter(id => id !== schemeId);
-      localStorage.setItem("sahayak_saved_schemes", JSON.stringify(savedIds));
+  // Submit an application to Firestore
+  applyForScheme: async (userId, scheme) => {
+    try {
+      const appsRef = collection(db, "applications");
+      const docRef = await addDoc(appsRef, {
+        userId,
+        schemeId: scheme.id,
+        schemeName: scheme.name,
+        category: scheme.category || "General",
+        status: "Submitted",
+        appliedAt: new Date().toISOString()
+      });
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error("Error applying for scheme:", error);
+      return { success: false, error: error.message };
     }
-    
-    return { success: true };
   },
 
-  // Check if scheme is saved
-  isSchemeSaved: async (schemeId) => {
-    const saved = localStorage.getItem("sahayak_saved_schemes");
-    if (!saved) return false;
-    return JSON.parse(saved).includes(schemeId);
+  // Get user's submitted applications
+  getUserApplications: async (userId) => {
+    try {
+      const q = query(
+        collection(db, "applications"),
+        where("userId", "==", userId)
+      );
+      const snapshot = await getDocs(q);
+      const apps = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return { success: true, data: apps };
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      return { success: false, error: error.message };
+    }
   }
 };
 
