@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../contexts/ProfileContext';
 import { Stepper, Button } from '../components';
@@ -22,6 +22,20 @@ export const Onboarding = () => {
     dependents: profile?.dependents ?? '',
     children: profile?.children ?? ''
   });
+
+  useEffect(() => {
+    if (!profile) return;
+    setFormData((current) => ({
+      ...current,
+      age: profile.age ?? current.age,
+      gender: profile.gender ?? current.gender,
+      state: profile.state ?? current.state,
+      urban: profile.urban ?? current.urban,
+      dependents: profile.dependents ?? current.dependents,
+      children: profile.children ?? current.children
+    }));
+    setCurrentStep(profile.onboardingStep || 1);
+  }, [profile]);
 
   const updateField = (event) => setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
 

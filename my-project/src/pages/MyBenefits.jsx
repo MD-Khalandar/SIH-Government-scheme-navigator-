@@ -26,12 +26,46 @@ export const MyBenefits = () => {
       const savedIds = savedRes.data.map(s => s.id);
       setSavedSchemes(savedIds);
 
-      let list = filter === 'saved' ? savedRes.data : schemesRes.data;
+      const demoProfile = {
+        age: 28,
+        gender: 'female',
+        state: 'karnataka',
+        income: 250000,
+        occupation: 'student',
+        ownLand: false,
+        landholding: 0,
+        disability: false,
+        urban: 'urban',
+        socialCategory: 'general',
+        dependents: 0,
+        children: 0
+      };
 
+      const userProfile = {
+        ...demoProfile,
+        age: profile?.age ?? demoProfile.age,
+        gender: profile?.gender ?? demoProfile.gender,
+        state: profile?.state ?? demoProfile.state,
+        income: profile?.income ?? demoProfile.income,
+        occupation: profile?.occupation ?? demoProfile.occupation,
+        ownLand: profile?.ownLand ?? demoProfile.ownLand,
+        landholding: profile?.landholding ?? demoProfile.landholding,
+        disability: profile?.disability ?? demoProfile.disability,
+        urban: profile?.urban ?? demoProfile.urban,
+        socialCategory: profile?.socialCategory ?? demoProfile.socialCategory,
+        dependents: profile?.dependents ?? demoProfile.dependents,
+        children: profile?.children ?? demoProfile.children
+      };
+
+      const matched = await import('../services/eligibilityService.js').then(({ eligibilityService }) =>
+        eligibilityService.getMatchingSchemes(userProfile, schemesRes.data)
+      );
+
+      let list = filter === 'saved' ? savedRes.data : matched.data.filter(s => s.eligibility.matchPercentage >= 50);
       const enriched = list.map(scheme => ({
         ...scheme,
-        eligibility: {
-          matchPercentage: Math.floor(Math.random() * 30 + 70),
+        eligibility: scheme.eligibility || {
+          matchPercentage: 55,
           matchedRules: [],
           failedRules: []
         }

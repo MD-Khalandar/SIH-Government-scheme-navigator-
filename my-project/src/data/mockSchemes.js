@@ -1,5 +1,192 @@
 import schemeMaster from '../../myScheme_164_Schemes_Master.json';
 
+const causeKeywords = {
+  'child birth': ['birth', 'newborn', 'pregnancy', 'maternal', 'maternity', 'child', 'girl child', 'new child'],
+  graduate: ['graduate', 'graduation', 'student', 'education', 'scholarship', 'diploma', 'college', 'university'],
+  farmer: ['farmer', 'kisan', 'agriculture', 'crop', 'farming', 'landholder', 'farm'],
+  employment: ['employment', 'job', 'unemployed', 'skill', 'training', 'work', 'placement'],
+  disability: ['disability', 'divyang', 'handicap', 'physically challenged'],
+  'senior citizen': ['senior citizen', 'old age', 'pension', 'retired', 'elderly'],
+  housing: ['housing', 'home', 'shelter', 'house', 'residential'],
+  health: ['health', 'medical', 'hospital', 'care', 'treatment', 'wellness']
+};
+
+const normalizeText = (value = '') => String(value)
+  .toLowerCase()
+  .replace(/[^a-z0-9\s]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const detectImmediateCause = (scheme) => {
+  const searchable = [
+    scheme.scheme_name,
+    scheme.description?.overview,
+    scheme.description?.benefits,
+    ...(scheme.eligibility?.criteria || []),
+    ...(scheme.requirements?.documents || []),
+    scheme.category,
+    scheme.jurisdiction?.ministry,
+    scheme.application?.mode
+  ].join(' ');
+
+  const normalized = normalizeText(searchable);
+
+  for (const [cause, keywords] of Object.entries(causeKeywords)) {
+    if (keywords.some(keyword => normalized.includes(normalizeText(keyword)))) {
+      return cause;
+    }
+  }
+
+  return 'general';
+};
+
+const buildKeywords = (scheme) => {
+  const genericTokens = new Set([
+    'scheme', 'government', 'india', 'support', 'benefit', 'benefits', 'supports', 'portal', 'official',
+    'application', 'eligible', 'criteria', 'documents', 'state', 'central', 'national', 'ministry',
+    'family', 'citizen', 'person', 'people', 'financial', 'assistance', 'services', 'program',
+    'yojana', 'plan', 'status', 'account', 'details', 'and', 'for', 'of', 'with', 'from', 'into',
+    'the', 'their', 'this'
+  ]);
+
+  const allNameFragments = [];
+  const rawName = String(scheme.scheme_name || '');
+  const nameWords = rawName.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+
+  nameWords.forEach((word, index) => {
+    if (word.length > 2) {
+      allNameFragments.push(word.toLowerCase());
+    }
+    const phrase = nameWords.slice(Math.max(0, index - 2), index + 3).join(' ').toLowerCase();
+    if (phrase.length > 4) {
+      allNameFragments.push(phrase);
+    }
+  });
+
+  const parts = [
+    scheme.scheme_name,
+    scheme.description?.overview,
+    scheme.description?.benefits,
+    scheme.category,
+    scheme.jurisdiction?.ministry,
+    ...(scheme.eligibility?.criteria || []),
+    ...(scheme.requirements?.documents || [])
+  ].filter(Boolean);
+
+  const text = normalizeText(parts.join(' '));
+  const tokens = text.split(' ')
+    .filter(token => token.length > 2)
+    .filter(token => !genericTokens.has(token));
+
+  return [...new Set([...allNameFragments, ...tokens])];
+};
+
+const inferBenefitAmount = (cause) => {
+  const amounts = {
+    'child birth': 18000,
+    graduate: 26000,
+    farmer: 36000,
+    employment: 22000,
+    disability: 30000,
+    'senior citizen': 18000,
+    housing: 60000,
+    health: 22000,
+    general: 15000
+  };
+
+  return amounts[cause] || 15000;
+};
+
+const inferEligibilityRules = (scheme) => {
+  const searchable = normalizeText([
+    scheme.scheme_name,
+    scheme.category,
+    scheme.description?.overview,
+    ...(scheme.eligibility?.criteria || [])
+  ].join(' '));
+
+  const ruleSets = {
+    education: [
+      { field: 'occupation', operator: 'in', value: ['student', 'self-employed', 'salaried'] },
+      { field: 'age', operator: '>=', value: 17 },
+      { field: 'age', operator: '<=', value: 35 },
+      { field: 'income', operator: '<=', value: 600000 }
+    ],
+    agriculture: [
+      { field: 'occupation', operator: '==', value: 'farmer' },
+      { field: 'ownLand', operator: '==', value: true },
+      { field: 'landholding', operator: '>=', value: 0.25 },
+      { field: 'income', operator: '<=', value: 800000 }
+    ],
+    maternity: [
+      { field: 'gender', operator: '==', value: 'female' },
+      { field: 'age', operator: '>=', value: 18 },
+      { field: 'age', operator: '<=', value: 45 },
+      { field: 'income', operator: '<=', value: 500000 }
+    ],
+    employment: [
+      { field: 'lookingForWork', operator: '==', value: 'yes' },
+      { field: 'age', operator: '>=', value: 18 },
+      { field: 'age', operator: '<=', value: 40 },
+      { field: 'occupation', operator: 'in', value: ['unemployed', 'student', 'self-employed', 'salaried'] }
+    ],
+    disability: [
+      { field: 'disability', operator: '==', value: true },
+      { field: 'age', operator: '>=', value: 18 },
+      { field: 'income', operator: '<=', value: 1000000 },
+      { field: 'urban', operator: 'in', value: ['urban', 'rural'] }
+    ],
+    senior: [
+      { field: 'age', operator: '>=', value: 60 },
+      { field: 'income', operator: '<=', value: 600000 },
+      { field: 'state', operator: '!=', value: null }
+    ],
+    housing: [
+      { field: 'ownHouse', operator: '==', value: false },
+      { field: 'income', operator: '<=', value: 900000 },
+      { field: 'urban', operator: 'in', value: ['urban', 'rural'] }
+    ],
+    healthcare: [
+      { field: 'income', operator: '<=', value: 600000 },
+      { field: 'age', operator: '>=', value: 0 },
+      { field: 'age', operator: '<=', value: 70 },
+      { field: 'state', operator: '!=', value: null }
+    ],
+    general: [
+      { field: 'age', operator: '>=', value: 18 },
+      { field: 'state', operator: '!=', value: null },
+      { field: 'income', operator: '<=', value: 1200000 }
+    ]
+  };
+
+  if (/(scholarship|education|student|college|university|exam|skill)/.test(searchable)) {
+    return ruleSets.education;
+  }
+  if (/(kisan|farmer|agriculture|crop|landholding|cultivator|farming)/.test(searchable)) {
+    return ruleSets.agriculture;
+  }
+  if (/(maternity|pregnancy|child birth|newborn|mother|women|girl child)/.test(searchable)) {
+    return ruleSets.maternity;
+  }
+  if (/(employment|job|skill|unemployed|placement|work|livelihood)/.test(searchable)) {
+    return ruleSets.employment;
+  }
+  if (/(disability|divyang|handicap|physically challenged)/.test(searchable)) {
+    return ruleSets.disability;
+  }
+  if (/(senior|pension|elderly|retired|old age)/.test(searchable)) {
+    return ruleSets.senior;
+  }
+  if (/(housing|home|house|shelter|residential|pucca)/.test(searchable)) {
+    return ruleSets.housing;
+  }
+  if (/(health|medical|hospital|treatment|wellness|care)/.test(searchable)) {
+    return ruleSets.healthcare;
+  }
+
+  return ruleSets.general;
+};
+
 // Legacy demo data retained only as a fallback reference.
 
 export const demoSchemes = [
@@ -300,25 +487,37 @@ export const demoSchemes = [
 ];
 
 // Normalize the myScheme master file into the shape consumed by the UI.
-export const mockSchemes = schemeMaster.schemes.map((scheme) => ({
-  id: scheme.scheme_id,
-  name: scheme.scheme_name,
-  description: scheme.description?.overview || scheme.description?.benefits || 'Details are available on the official portal.',
-  category: scheme.category,
-  ministry: scheme.jurisdiction?.ministry || 'Government of India',
-  state: scheme.jurisdiction?.state_ut || 'All India',
-  lifeEvents: [],
-  benefit: { amount: null, frequency: 'one-time', currency: 'INR' },
-  eligibilityRules: [],
-  eligibilityCriteria: scheme.eligibility?.criteria || [],
-  documents: scheme.requirements?.documents || [],
-  applicationSteps: [scheme.application?.mode ? `Apply ${scheme.application.mode.toLowerCase()}` : 'Check the official portal for application steps'],
-  officialUrl: scheme.application?.official_portal || scheme.application?.myscheme_portal || '',
-  lastVerified: null,
-  source: scheme.application?.myscheme_portal || 'myScheme Portal',
-  applicationMode: scheme.application?.mode || 'See official portal',
-  deadline: null
-}));
+export const mockSchemes = schemeMaster.schemes.map((scheme) => {
+  const normalizedScheme = {
+    id: scheme.scheme_id,
+    name: scheme.scheme_name,
+    description: scheme.description?.overview || scheme.description?.benefits || 'Details are available on the official portal.',
+    category: scheme.category,
+    ministry: scheme.jurisdiction?.ministry || 'Government of India',
+    state: scheme.jurisdiction?.state_ut || 'All India',
+    lifeEvents: [],
+    benefit: { amount: null, frequency: 'one-time', currency: 'INR' },
+    eligibilityRules: [],
+    eligibilityCriteria: scheme.eligibility?.criteria || [],
+    documents: scheme.requirements?.documents || [],
+    applicationSteps: [scheme.application?.mode ? `Apply ${scheme.application.mode.toLowerCase()}` : 'Check the official portal for application steps'],
+    officialUrl: scheme.application?.official_portal || scheme.application?.myscheme_portal || '',
+    lastVerified: null,
+    source: scheme.application?.myscheme_portal || 'myScheme Portal',
+    applicationMode: scheme.application?.mode || 'See official portal',
+    deadline: null,
+    keywords: [],
+    immediateCause: 'general'
+  };
+
+  normalizedScheme.keywords = buildKeywords(scheme);
+  normalizedScheme.immediateCause = detectImmediateCause(scheme);
+  normalizedScheme.lifeEvents = [normalizedScheme.immediateCause];
+  normalizedScheme.eligibilityRules = inferEligibilityRules(scheme);
+  normalizedScheme.benefit.amount = inferBenefitAmount(normalizedScheme.immediateCause);
+
+  return normalizedScheme;
+});
 
 export const mockDocuments = [
   { id: 1, name: "Aadhaar", required: false, ready: false },

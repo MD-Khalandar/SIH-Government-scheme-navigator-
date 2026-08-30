@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar, Sidebar, Button, Input, Select } from '../components';
 import { useProfile } from '../contexts/ProfileContext';
@@ -7,7 +7,10 @@ import { schemeService } from '../services/schemeService';
 export const EligibilityProfile = () => {
   const navigate = useNavigate();
   const { profile, updateProfile } = useProfile();
+<<<<<<< HEAD
   const [sidebarOpen, setSidebarOpen] = useState(false);
+=======
+>>>>>>> 2e44ea2afdbd81a34a6ecc911f0ffb84951e8089
   const [loading, setLoading] = useState(false);
   const [eligibleSchemes, setEligibleSchemes] = useState(null);
 
@@ -19,8 +22,37 @@ export const EligibilityProfile = () => {
     state: profile?.state || 'All'
   });
 
+<<<<<<< HEAD
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+=======
+  useEffect(() => {
+    if (!profile) return;
+    setFormData(prev => ({
+      ...prev,
+      age: profile.age ?? prev.age,
+      gender: profile.gender ?? prev.gender,
+      state: profile.state ?? prev.state,
+      urban: profile.urban ?? prev.urban,
+      dependents: profile.dependents ?? prev.dependents,
+      children: profile.children ?? prev.children,
+      district: profile.district ?? prev.district,
+      socialCategory: profile.socialCategory ?? prev.socialCategory,
+      disability: profile.disability ?? prev.disability,
+      income: profile.income ?? prev.income,
+      occupation: profile.occupation ?? prev.occupation,
+      ownLand: profile.ownLand ?? prev.ownLand,
+      landholding: profile.landholding ?? prev.landholding,
+      seniorCitizens: profile.seniorCitizens ?? prev.seniorCitizens,
+      ownHouse: profile.ownHouse ?? prev.ownHouse,
+      housingCondition: profile.housingCondition ?? prev.housingCondition
+    }));
+  }, [profile]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+>>>>>>> 2e44ea2afdbd81a34a6ecc911f0ffb84951e8089
   };
 
   const handleCheckEligibility = async (e) => {

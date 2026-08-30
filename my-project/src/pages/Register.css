@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Typography Foundation */
+.font-register {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #061b0d;
+}
+
+/* Fluid Mesh Page Canvas */
+.register-page-canvas {
+  background-color: #c2f0c8;
+  background-image: url('../assets/blurry-gradient-haikei.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #061b0d;
+}
+
+/* Glassmorphic Container */
+.lucid-glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1.5px solid rgba(255, 255, 255, 0.95);
+  box-shadow: 
+    0 24px 48px -12px rgba(6, 27, 13, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+/* Method Switcher Track */
+.lucid-pill-track {
+  background: rgba(6, 27, 13, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+.lucid-pill-active {
+  background: #061b0d;
+  color: #c9f3ce;
+  box-shadow: 0 4px 12px rgba(6, 27, 13, 0.25);
+}
+
+.lucid-pill-idle {
+  color: #0a2e14;
+}
+
+.lucid-pill-idle:hover {
+  color: #061b0d;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Input Fields */
+.lucid-input-field {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(6, 27, 13, 0.22);
+  color: #061b0d;
+  transition: all 0.2s ease-in-out;
+}
+
+.lucid-input-field::placeholder {
+  color: rgba(10, 46, 20, 0.65);
+}
+
+.lucid-input-field:hover {
+  border-color: #177e4f;
+  background: #ffffff;
+}
+
+.lucid-input-field:focus {
+  background: #ffffff;
+  border-color: #177e4f;
+  box-shadow: 0 0 0 3.5px rgba(23, 126, 79, 0.25);
+}
+
+/* Social Login Buttons */
+.social-login-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(6, 27, 13, 0.18);
+  color: #061b0d;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.social-login-btn:hover {
+  background: #ffffff;
+  border-color: #177e4f;
+  color: #177e4f;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(6, 27, 13, 0.1);
+}
