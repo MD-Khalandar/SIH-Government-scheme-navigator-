@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* Typography Anchor */
+.font-onboarding {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: #061b0d;
+}
+
+/* Background Canvas */
+.onboarding-page-canvas {
+  background-color: #c2f0c8;
+  background-image: url('../assets/wave-haikei.svg');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: #061b0d;
+}
+
+/* Minimalist Glass Card */
+.onboarding-glass-card {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 40px -10px rgba(6, 27, 13, 0.06);
+}
+
+/* Animated Panel Transitions */
+.onboarding-step-enter {
+  animation: onboardingFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes onboardingFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Minimalist Underline Input */
+.onboarding-underline-input {
+  background: transparent;
+  border-bottom: 1.5px solid rgba(6, 27, 13, 0.15);
+  color: #061b0d;
+  font-weight: 700;
+  transition: border-color 0.2s ease;
+}
+
+.onboarding-underline-input:focus {
+  border-bottom-color: #177e4f;
+  outline: none;
+}
+
+.onboarding-underline-input::placeholder {
+  color: rgba(10, 46, 20, 0.35);
+  font-weight: 500;
+}
+
+/* Select Input */
+.onboarding-select-input {
+  background: rgba(255, 255, 255, 0.9);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23177e4f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.9rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  border: 1px solid rgba(6, 27, 13, 0.12);
+  color: #061b0d;
+  font-weight: 600;
+  padding-right: 2.75rem;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all 0.2s ease;
+}
+
+.onboarding-select-input:focus {
+  border-color: #177e4f;
+  box-shadow: 0 0 0 2px rgba(23, 126, 79, 0.1);
+  outline: none;
+}
+
+/* Minimal Option Pills */
+.onboarding-choice-pill {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(6, 27, 13, 0.1);
+  color: #061b0d;
+  transition: all 0.2s ease;
+}
+
+.onboarding-choice-pill:hover {
+  border-color: rgba(23, 126, 79, 0.4);
+  background: #ffffff;
+}
+
+.onboarding-choice-pill.active {
+  background: #177e4f;
+  border-color: #177e4f;
+  color: #ffffff;
+}
+
+/* Mild Buttons */
+.btn-primary-mild {
+  background-color: #177e4f;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.btn-primary-mild:hover {
+  background-color: #12633e;
+}
+
+.btn-secondary-mild {
+  background-color: transparent;
+  color: #061b0d;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary-mild:hover {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Bottom Stepper Track */
+.onboarding-stepper-track {
+  background: rgba(255, 255, 255, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.stepper-btn {
+  transition: all 0.2s ease;
+}
+
+.stepper-btn.active {
+  background: #177e4f;
+  color: #ffffff;
+}
+
+.stepper-btn.completed {
+  background: rgba(23, 126, 79, 0.12);
+  color: #177e4f;
+}
+
+.stepper-btn.idle {
+  background: transparent;
+  color: rgba(6, 27, 13, 0.45);
+}
+
+.stepper-btn.idle:hover {
+  color: #061b0d;
+  background: rgba(255, 255, 255, 0.4);
+}
