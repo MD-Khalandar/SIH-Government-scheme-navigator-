@@ -1,6 +1,7 @@
 // Formatting utilities
 
 export const formatCurrency = (amount, currency = "INR") => {
+  if (typeof amount !== 'number') return 'See official portal';
   const formatter = new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: currency,
@@ -11,6 +12,7 @@ export const formatCurrency = (amount, currency = "INR") => {
 };
 
 export const formatDate = (dateString) => {
+  if (!dateString) return 'Not provided';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-IN', {
     year: 'numeric',

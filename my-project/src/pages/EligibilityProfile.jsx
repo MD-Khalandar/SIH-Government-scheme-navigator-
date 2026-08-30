@@ -38,7 +38,17 @@ export const EligibilityProfile = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await updateProfile(formData);
+      await updateProfile({
+        ...formData,
+        age: formData.age ? Number(formData.age) : null,
+        income: {
+          'below-1L': 99999,
+          '1L-2.5L': 250000,
+          '2.5L-5L': 500000,
+          '5L-10L': 1000000,
+          'above-10L': 1000001
+        }[formData.income] ?? null
+      });
       navigate('/app/dashboard');
     } catch (err) {
       console.error(err);

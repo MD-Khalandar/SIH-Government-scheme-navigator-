@@ -1,16 +1,35 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Navbar, Sidebar, Input, Select } from '../components';
+import { Navbar, Sidebar, Input, Select, SchemeCard, EmptyState } from '../components';
 import { Search } from 'lucide-react';
+import { schemeService } from '../services/schemeService';
 
 export const FindBenefits = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ state: '', category: '', ministry: '' });
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    const query = searchQuery.trim().toLowerCase();
+    try {
+      const { data } = await schemeService.getSchemes();
+      const filtered = data.filter((scheme) => {
+        const searchable = `${scheme.name} ${scheme.description} ${scheme.category} ${scheme.ministry}`.toLowerCase();
+        const matchesQuery = !query || searchable.includes(query);
+        const matchesState = !filters.state || scheme.state === 'All India' || scheme.state.toLowerCase() === filters.state;
+        const matchesCategory = !filters.category || scheme.category.toLowerCase() === filters.category;
+        const matchesMinistry = !filters.ministry || scheme.ministry.toLowerCase().includes(filters.ministry);
+        return matchesQuery && matchesState && matchesCategory && matchesMinistry;
+      });
+      setResults(filtered);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,11 +99,30 @@ export const FindBenefits = () => {
               </button>
             </form>
 
-            <div className="rounded-2xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-5 text-center">
-              <p className="text-xs text-[#14341e]/70 font-light leading-relaxed">
-                Filter and inspect central gazettes and state notifications without registration requirements.
-              </p>
-            </div>
+            {results === null ? (
+              <div className="rounded-2xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-5 text-center">
+                <p className="text-xs text-[#14341e]/70 font-light leading-relaxed">
+                  Filter and inspect central gazettes and state notifications without registration requirements.
+                </p>
+              </div>
+            ) : loading ? (
+              <p className="text-center text-gray-600">Searching schemes…</p>
+            ) : results.length === 0 ? (
+              <EmptyState icon={Search} title="No schemes found" description="Try a broader search or clear one of the filters." />
+            ) : (
+              <div className="grid gap-6">
+                <p className="text-sm text-gray-600">{results.length} scheme{results.length === 1 ? '' : 's'} found</p>
+                {results.map((scheme) => (
+                  <SchemeCard
+                    key={scheme.id}
+                    scheme={scheme}
+                    eligibility={{ matchPercentage: 0 }}
+                    onViewDetails={() => navigate(`/app/schemes/${scheme.id}`)}
+                    onSave={() => schemeService.saveScheme(scheme.id)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>

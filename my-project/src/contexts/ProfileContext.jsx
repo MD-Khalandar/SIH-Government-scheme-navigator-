@@ -8,11 +8,7 @@ export const ProfileProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
+  async function loadProfile() {
     setLoading(true);
     try {
       const result = await profileService.getUserProfile();
@@ -22,7 +18,11 @@ export const ProfileProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
   const updateProfile = async (profileData) => {
     setLoading(true);

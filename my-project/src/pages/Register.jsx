@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Input } from '../components';
+import authService from '../services/authService';
+import { Button, Input } from '../components';
 
 export const Register = () => {
   const navigate = useNavigate();
@@ -16,15 +17,21 @@ export const Register = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [registerMethod, setRegisterMethod] = useState('email');
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.fullName) newErrors.fullName = 'Full name required';
-    if (!formData.phone) newErrors.phone = 'Mobile line required';
-    if (!formData.password) newErrors.password = 'Credential key required';
-    if (formData.password.length < 6) newErrors.password = 'Minimum 6 characters';
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Keys mismatch';
-    if (!agreeTerms) newErrors.terms = 'Consent acknowledgment required';
+    if (!formData.fullName) newErrors.fullName = 'Full name is required';
+    if (!formData.phone) newErrors.phone = 'Phone number is required';
+
+    if (registerMethod === 'email') {
+      if (!formData.email) newErrors.email = 'Email is required';
+      if (!formData.password) newErrors.password = 'Password is required';
+      if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (!agreeTerms) newErrors.terms = 'You must agree to the terms';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -37,10 +44,23 @@ export const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
     setLoading(true);
     try {
+      if (registerMethod === 'phone') {
+        await authService.sendPhoneOTP(formData.phone, formData.fullName);
+        navigate('/verify-otp', {
+          state: {
+            phone: formData.phone,
+            fullName: formData.fullName,
+            mode: 'phone-register'
+          }
+        });
+        return;
+      }
+
       await register(formData);
-      navigate('/verify-otp', { state: { phone: formData.phone } });
+      navigate('/app/onboarding');
     } catch (err) {
       setErrors({ submit: err.message });
     } finally {
@@ -66,6 +86,27 @@ export const Register = () => {
             </div>
           )}
 
+          <div className="flex rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setRegisterMethod('email')}
+              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+                registerMethod === 'email' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegisterMethod('phone')}
+              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+                registerMethod === 'phone' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              Phone
+            </button>
+          </div>
+
           <Input
             label="Citizen Name"
             placeholder="First and last designation"
@@ -86,36 +127,42 @@ export const Register = () => {
             required
           />
 
-          <Input
-            label="Electronic Mail (Optional)"
-            type="email"
-            placeholder="citizen@domain.com"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-          />
+          {registerMethod === 'email' && (
+            <>
+              <Input
+                label="Email"
+                type="email"
+                placeholder="Enter your email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                required
+              />
 
-          <Input
-            label="Security Key"
-            type="password"
-            placeholder="6+ characters"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            error={errors.password}
-            required
-          />
+              <Input
+                label="Password"
+                type="password"
+                placeholder="Create a strong password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                error={errors.password}
+                required
+              />
 
-          <Input
-            label="Confirm Key"
-            type="password"
-            placeholder="Re-enter security key"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            error={errors.confirmPassword}
-            required
-          />
+              <Input
+                label="Confirm Password"
+                type="password"
+                placeholder="Confirm your password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={errors.confirmPassword}
+                required
+              />
+            </>
+          )}
 
           <label className="flex items-start gap-2 cursor-pointer pt-1">
             <input
@@ -130,13 +177,9 @@ export const Register = () => {
           </label>
           {errors.terms && <p className="text-[11px] text-rose-700">{errors.terms}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-full bg-[#177e4f] hover:bg-[#14341e] text-white text-xs font-normal transition shadow-sm mt-3"
-          >
+          <Button type="submit" fullWidth loading={loading}>
             {loading ? 'Creating Record...' : 'Generate Profile'}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center text-xs font-light text-[#14341e]/70">

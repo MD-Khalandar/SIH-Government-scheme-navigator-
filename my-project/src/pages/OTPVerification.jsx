@@ -6,6 +6,8 @@ export const OTPVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const phone = location.state?.phone || '';
+  const mode = location.state?.mode || 'phone-login';
+  const fullName = location.state?.fullName || '';
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,12 +15,21 @@ export const OTPVerification = () => {
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
-    if (phone) {
-      authService.sendOTP(phone).catch(err => setError(err.message));
+    if (!phone || (mode !== 'phone-login' && mode !== 'phone-register')) {
+      navigate('/login', { replace: true });
+      return undefined;
     }
-  }, [phone]);
 
-  useEffect(() => {
+    const sendOtp = async () => {
+      try {
+        await authService.sendPhoneOTP(phone);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    sendOtp();
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -28,8 +39,9 @@ export const OTPVerification = () => {
         return prev - 1;
       });
     }, 1000);
+
     return () => clearInterval(timer);
-  }, []);
+  }, [mode, navigate, phone]);
 
   const handleOtpChange = (value, index) => {
     if (value.length > 1 || !/^\d*$/.test(value)) return;
@@ -54,11 +66,23 @@ export const OTPVerification = () => {
       setError('Please provide the full 6-digit key');
       return;
     }
+
     setLoading(true);
     setError('');
     try {
-      await authService.verifyOTP(otpValue);
-      navigate('/app/onboarding');
+      if (mode === 'phone-login') {
+        await authService.verifyPhoneLogin(otpValue);
+        navigate('/app/dashboard');
+        return;
+      }
+
+      if (mode === 'phone-register') {
+        await authService.verifyPhoneRegister({ otp: otpValue, fullName, phone });
+        navigate('/app/onboarding');
+        return;
+      }
+
+      throw new Error('Start phone verification from the login or registration page.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -69,7 +93,7 @@ export const OTPVerification = () => {
   const handleResend = async () => {
     setLoading(true);
     try {
-      await authService.sendOTP(phone);
+      await authService.sendPhoneOTP(phone);
       setTimeLeft(30);
       setCanResend(false);
       setError('');
@@ -117,9 +141,6 @@ export const OTPVerification = () => {
                 />
               ))}
             </div>
-            <p className="text-center text-[11px] text-[#14341e]/50 font-light mt-3">
-              Demonstration key: 123456
-            </p>
           </div>
 
           <div className="text-center">

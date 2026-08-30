@@ -46,8 +46,10 @@ export const profileService = {
   updateUserProfile: async (profileData) => {
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    localStorage.setItem("sahayak_profile", JSON.stringify(profileData));
-    return { success: true, data: profileData };
+    const current = await profileService.getUserProfile();
+    const mergedProfile = { ...current.data, ...profileData };
+    localStorage.setItem("sahayak_profile", JSON.stringify(mergedProfile));
+    return { success: true, data: mergedProfile };
   },
 
   // Get onboarding progress

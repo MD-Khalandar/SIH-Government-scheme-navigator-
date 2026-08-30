@@ -14,7 +14,7 @@ export const schemeService = {
   // Get scheme by ID
   getSchemeById: async (id) => {
     await new Promise(resolve => setTimeout(resolve, 600));
-    const scheme = mockSchemes.find(s => s.id === parseInt(id));
+    const scheme = mockSchemes.find(s => String(s.id) === String(id));
     
     if (!scheme) {
       throw new Error("Scheme not found");

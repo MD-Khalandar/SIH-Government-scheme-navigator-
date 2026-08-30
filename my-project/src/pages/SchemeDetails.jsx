@@ -4,8 +4,8 @@ import { Navbar, Sidebar, LoadingState, ProgressBar } from '../components';
 import { schemeService } from '../services/schemeService';
 import { documentService } from '../services/documentService';
 import { applicationService } from '../services/applicationService';
-import { formatCurrency, formatDate } from '../utils/formatters';
-import { ArrowLeft, ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
+import { formatCurrency } from '../utils/formatters';
+import { ArrowLeft, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 export const SchemeDetails = () => {
   const { id } = useParams();
@@ -19,35 +19,36 @@ export const SchemeDetails = () => {
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
+    const loadScheme = async () => {
+      setLoading(true);
+      try {
+        const res = await schemeService.getSchemeById(id);
+        setScheme(res.data);
+        const saved = await schemeService.isSchemeSaved(Number(id));
+        setIsSaved(saved);
+        const docsRes = await documentService.getSchemeDocuments(res.data);
+        setDocuments(docsRes.data);
+        const ready = docsRes.data.filter(d => d.ready).length;
+        const readiness = docsRes.data.length > 0 ? (ready / docsRes.data.length) * 100 : 0;
+        setDocumentReadiness(readiness);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadScheme();
   }, [id]);
 
-  const loadScheme = async () => {
-    setLoading(true);
-    try {
-      const res = await schemeService.getSchemeById(id);
-      setScheme(res.data);
-      const saved = await schemeService.isSchemeSaved(parseInt(id));
-      setIsSaved(saved);
-      const docsRes = await documentService.getSchemeDocuments(res.data);
-      setDocuments(docsRes.data);
-      const ready = docsRes.data.filter(d => d.ready).length;
-      const readiness = docsRes.data.length > 0 ? (ready / docsRes.data.length) * 100 : 0;
-      setDocumentReadiness(readiness);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
     try {
+      const numericId = Number(id);
       if (isSaved) {
-        await schemeService.removeSavedScheme(parseInt(id));
+        await schemeService.removeSavedScheme(numericId);
         setIsSaved(false);
       } else {
-        await schemeService.saveScheme(parseInt(id));
+        await schemeService.saveScheme(numericId);
         setIsSaved(true);
       }
     } catch (err) {
@@ -58,7 +59,10 @@ export const SchemeDetails = () => {
   const handleApply = async () => {
     try {
       await applicationService.createApplication(scheme.id, scheme.name);
-      navigate(`/app/applications`);
+      if (scheme.officialUrl) {
+        window.open(scheme.officialUrl, '_blank', 'noopener,noreferrer');
+      }
+      navigate('/app/applications');
     } catch (err) {
       console.error(err);
     }
@@ -115,7 +119,6 @@ export const SchemeDetails = () => {
               <span>Back to Directory</span>
             </button>
 
-            {/* Scheme Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 mb-8">
               <div>
                 <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight">{scheme.name}</h1>
@@ -135,7 +138,6 @@ export const SchemeDetails = () => {
               </button>
             </div>
 
-            {/* Benefit Value Pill */}
             <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
               <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Entitlement Calculation</span>
               <p className="text-3xl sm:text-4xl font-light text-[#14341e] mt-1">
@@ -146,7 +148,6 @@ export const SchemeDetails = () => {
               </p>
             </div>
 
-            {/* Document Checklist */}
             <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-sm font-normal text-[#14341e]">Application Readiness Status</h2>
@@ -155,31 +156,33 @@ export const SchemeDetails = () => {
               <ProgressBar value={documentReadiness} />
             </div>
 
-            {/* Scheme Summary */}
             <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
               <h2 className="text-sm font-normal text-[#14341e] mb-2">Scope & Objectives</h2>
               <p className="text-xs sm:text-sm text-[#14341e]/75 font-light leading-relaxed">{scheme.description}</p>
             </div>
 
-            {/* Eligibility Requirements */}
             <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
               <h2 className="text-sm font-normal text-[#14341e] mb-4">Statutory Criteria</h2>
               <div className="space-y-3">
-                {scheme.eligibilityRules?.map((rule, idx) => (
-                  <div key={idx} className="flex items-start gap-3">
-                    <CheckCircle2 size={16} className="text-[#177e4f] mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-xs sm:text-sm font-normal text-[#14341e] capitalize">
-                        {rule.field.replace(/([A-Z])/g, ' $1')}
-                      </p>
-                      <p className="text-xs text-[#14341e]/50 font-light">Condition: {rule.operator} {rule.value}</p>
+                {(scheme.eligibilityCriteria || scheme.eligibilityRules || []).map((rule, idx) => {
+                  const label = typeof rule === 'string' ? rule : rule.field?.replace(/([A-Z])/g, ' $1') || 'Eligibility Requirement';
+                  const description = typeof rule === 'string'
+                    ? 'Check the official criteria.'
+                    : `Condition: ${rule.operator} ${rule.value}`;
+
+                  return (
+                    <div key={idx} className="flex items-start gap-3">
+                      <CheckCircle2 size={16} className="text-[#177e4f] mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs sm:text-sm font-normal text-[#14341e] capitalize">{label}</p>
+                        <p className="text-xs text-[#14341e]/50 font-light">{description}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
-            {/* Action Bar */}
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
               <button
                 onClick={handleApply}
