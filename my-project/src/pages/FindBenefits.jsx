@@ -1,79 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar, Sidebar, Input, Select, SchemeCard, EmptyState } from '../components';
 import { Search } from 'lucide-react';
 import { schemeService } from '../services/schemeService';
-import { useProfile } from '../contexts/ProfileContext';
-
-const immediateCauseOptions = [
-  { label: 'Child Birth', value: 'child birth' },
-  { label: 'Graduate', value: 'graduate' },
-  { label: 'Farmer', value: 'farmer' },
-  { label: 'Employment', value: 'employment' },
-  { label: 'Disability', value: 'disability' },
-  { label: 'Senior Citizen', value: 'senior citizen' },
-  { label: 'Housing', value: 'housing' },
-  { label: 'Health', value: 'health' },
-  { label: 'Education', value: 'education' },
-  { label: 'Women', value: 'women' }
-];
-
-const defaultSuggestionTerms = ['child birth', 'graduate', 'farmer', 'employment', 'women', 'senior citizen', 'housing'];
-
-const normalizeText = (value = '') => String(value || '')
-  .toLowerCase()
-  .replace(/[^a-z0-9\s]/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
-
-const buildProfileDefaults = (profile) => ({
-  age: profile?.age ?? 28,
-  gender: profile?.gender ?? 'female',
-  state: profile?.state ?? 'karnataka',
-  income: profile?.income ?? 250000,
-  occupation: profile?.occupation ?? 'student',
-  ownLand: profile?.ownLand ?? false,
-  landholding: profile?.landholding ?? 0,
-  disability: profile?.disability ?? false,
-  urban: profile?.urban ?? 'urban',
-  socialCategory: profile?.socialCategory ?? 'general',
-  dependents: profile?.dependents ?? 0,
-  children: profile?.children ?? 0,
-  lookingForWork: profile?.lookingForWork ?? 'yes'
-});
 
 export const FindBenefits = () => {
   const navigate = useNavigate();
-  const { profile } = useProfile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    state: profile?.state || '',
-    category: '',
-    ministry: '',
-    cause: '',
-    gender: profile?.gender || '',
-    occupation: profile?.occupation || '',
-    age: profile?.age || '',
-    income: profile?.income || ''
-  });
+  const [filters, setFilters] = useState({ state: '', category: '', ministry: '' });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    setFilters((current) => ({
-      ...current,
-      state: current.state || profile?.state || '',
-      gender: current.gender || profile?.gender || '',
-      occupation: current.occupation || profile?.occupation || '',
-      age: current.age || profile?.age || '',
-      income: current.income || profile?.income || ''
-    }));
-  }, [profile]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const query = searchQuery.trim().toLowerCase();
+    try {
+      const { data } = await schemeService.getSchemes();
+      const filtered = data.filter((scheme) => {
+        const searchable = `${scheme.name} ${scheme.description} ${scheme.category} ${scheme.ministry}`.toLowerCase();
+        const matchesQuery = !query || searchable.includes(query);
+        const matchesState = !filters.state || scheme.state === 'All India' || scheme.state.toLowerCase() === filters.state;
+        const matchesCategory = !filters.category || scheme.category.toLowerCase() === filters.category;
+        const matchesMinistry = !filters.ministry || scheme.ministry.toLowerCase().includes(filters.ministry);
+        return matchesQuery && matchesState && matchesCategory && matchesMinistry;
+      });
+      setResults(filtered);
 
     try {
       const { data: allSchemes } = await schemeService.getSchemes();
@@ -228,20 +181,6 @@ export const FindBenefits = () => {
     }
   };
 
-  const searchSuggestions = (() => {
-    const baseList = [...defaultSuggestionTerms];
-
-    if (!results || results.length === 0) {
-      const fallbackOptions = (schemeService && typeof schemeService.getSchemes === 'function')
-        ? []
-        : [];
-
-      return baseList.concat(fallbackOptions);
-    }
-
-    return baseList.filter(term => term.toLowerCase().includes(searchQuery.toLowerCase()) || !searchQuery.trim());
-  })();
-
   return (
     <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -257,8 +196,8 @@ export const FindBenefits = () => {
             <form onSubmit={handleSearch} className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 space-y-5 mb-8">
               <div className="grid md:grid-cols-2 gap-4">
                 <Input
-                  label="Search by scheme name"
-                  placeholder="PM-KISAN, scholarship, farmer support..."
+                  label="Search parameters"
+                  placeholder="Scheme designation, key provisions, nodal body..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -270,20 +209,12 @@ export const FindBenefits = () => {
                   options={[
                     { label: 'Karnataka', value: 'karnataka' },
                     { label: 'Maharashtra', value: 'maharashtra' },
-                    { label: 'Delhi', value: 'delhi' },
-                    { label: 'All India', value: 'all india' }
+                    { label: 'Delhi', value: 'delhi' }
                   ]}
                 />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <Select
-                  label="Immediate Cause"
-                  placeholder="Any life situation"
-                  value={filters.cause}
-                  onChange={(e) => setFilters(prev => ({ ...prev, cause: e.target.value }))}
-                  options={immediateCauseOptions}
-                />
                 <Select
                   label="Classification"
                   placeholder="All sectors"
@@ -292,41 +223,9 @@ export const FindBenefits = () => {
                   options={[
                     { label: 'Education & Research', value: 'education' },
                     { label: 'Employment & Skilling', value: 'employment' },
-                    { label: 'Agriculture & Agritech', value: 'agriculture' },
-                    { label: 'Healthcare', value: 'healthcare' },
-                    { label: 'Social Security', value: 'social security' }
+                    { label: 'Agriculture & Agritech', value: 'agriculture' }
                   ]}
                 />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <Select
-                  label="Gender"
-                  placeholder="Any gender"
-                  value={filters.gender}
-                  onChange={(e) => setFilters(prev => ({ ...prev, gender: e.target.value }))}
-                  options={[
-                    { label: 'Male', value: 'male' },
-                    { label: 'Female', value: 'female' },
-                    { label: 'Other', value: 'other' }
-                  ]}
-                />
-                <Select
-                  label="Occupation"
-                  placeholder="Any occupation"
-                  value={filters.occupation}
-                  onChange={(e) => setFilters(prev => ({ ...prev, occupation: e.target.value }))}
-                  options={[
-                    { label: 'Student', value: 'student' },
-                    { label: 'Farmer', value: 'farmer' },
-                    { label: 'Salaried', value: 'salaried' },
-                    { label: 'Unemployed', value: 'unemployed' },
-                    { label: 'Self-employed', value: 'self-employed' }
-                  ]}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
                 <Select
                   label="Ministry / Department"
                   placeholder="All Authorities"
@@ -335,27 +234,8 @@ export const FindBenefits = () => {
                   options={[
                     { label: 'Education', value: 'education' },
                     { label: 'Labour & Employment', value: 'labour' },
-                    { label: 'Agriculture & Farmers Welfare', value: 'agriculture' },
-                    { label: 'Women & Child Development', value: 'women' },
-                    { label: 'Social Justice', value: 'social justice' }
+                    { label: 'Agriculture & Farmers Welfare', value: 'agriculture' }
                   ]}
-                />
-                <Input
-                  label="Age"
-                  type="number"
-                  placeholder="Any age"
-                  value={filters.age}
-                  onChange={(e) => setFilters(prev => ({ ...prev, age: e.target.value }))}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <Input
-                  label="Income"
-                  type="number"
-                  placeholder="Annual income"
-                  value={filters.income}
-                  onChange={(e) => setFilters(prev => ({ ...prev, income: e.target.value }))}
                 />
               </div>
 
@@ -377,27 +257,7 @@ export const FindBenefits = () => {
             ) : loading ? (
               <p className="text-center text-gray-600">Searching schemes…</p>
             ) : results.length === 0 ? (
-              <div className="rounded-3xl bg-white/40 backdrop-blur-xl border border-white/70 p-8">
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-[#14341e]">No exact matches for this search.</p>
-                  <p className="text-xs text-[#14341e]/70 mt-1">Try one of these common life situations:</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {searchSuggestions.map((term) => (
-                    <button
-                      key={term}
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery(term);
-                        setFilters(prev => ({ ...prev, cause: term }));
-                      }}
-                      className="px-3 py-1.5 rounded-full bg-white/70 border border-[#a9c7b1]/40 text-xs text-[#14341e] hover:bg-white transition"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <EmptyState icon={Search} title="No schemes found" description="Try a broader search or clear one of the filters." />
             ) : (
               <div className="grid gap-6">
                 <p className="text-sm text-gray-600">{results.length} scheme{results.length === 1 ? '' : 's'} found</p>
@@ -405,7 +265,7 @@ export const FindBenefits = () => {
                   <SchemeCard
                     key={scheme.id}
                     scheme={scheme}
-                    eligibility={scheme.eligibility}
+                    eligibility={{ matchPercentage: 0 }}
                     onViewDetails={() => navigate(`/app/schemes/${scheme.id}`)}
                     onSave={() => schemeService.saveScheme(scheme.id)}
                   />

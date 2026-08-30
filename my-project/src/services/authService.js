@@ -113,15 +113,6 @@ export const authService = {
       phone: data.phone.trim()
     });
 
-    const savedProfile = JSON.parse(localStorage.getItem('sahayak_profile') || '{}');
-    localStorage.setItem('sahayak_profile', JSON.stringify({
-      ...savedProfile,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      onboardingStep: savedProfile.onboardingStep || 1
-    }));
-
     storeCurrentUser(user);
 
     return { success: true, user };
@@ -169,15 +160,6 @@ export const authService = {
     const credential = await pendingPhoneConfirmation.confirm(otp);
     const user = mapFirebaseUser(credential.user);
 
-    const savedProfile = JSON.parse(localStorage.getItem('sahayak_profile') || '{}');
-    localStorage.setItem('sahayak_profile', JSON.stringify({
-      ...savedProfile,
-      name: user?.name || savedProfile.name || '',
-      email: user?.email || savedProfile.email || '',
-      phone: savedProfile.phone || user?.phone || '',
-      onboardingStep: savedProfile.onboardingStep || 1
-    }));
-
     storeCurrentUser(user);
     pendingPhoneConfirmation = null;
     return { success: true, user };
@@ -200,15 +182,6 @@ export const authService = {
       email: user.email || '',
       phone: phone || normalizePhoneNumber(phone)
     });
-
-    const savedProfile = JSON.parse(localStorage.getItem('sahayak_profile') || '{}');
-    localStorage.setItem('sahayak_profile', JSON.stringify({
-      ...savedProfile,
-      name: finalUser.name,
-      email: finalUser.email,
-      phone: finalUser.phone,
-      onboardingStep: savedProfile.onboardingStep || 1
-    }));
 
     storeCurrentUser(finalUser);
     pendingPhoneConfirmation = null;

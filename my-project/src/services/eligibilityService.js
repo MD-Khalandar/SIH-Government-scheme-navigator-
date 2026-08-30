@@ -23,24 +23,29 @@ export const eligibilityService = {
   // Get eligibility summary
   getEligibilitySummary: async (userProfile, schemes) => {
     await new Promise(resolve => setTimeout(resolve, 800));
-
-    const matched = getMatchingSchemes(userProfile, schemes)
-      .filter(s => s.eligibility.matchPercentage >= 50);
-
-    const fullyMatched = matched.filter(s => s.eligibility.matchPercentage >= 90);
-    const highMatch = matched.filter(s => s.eligibility.matchPercentage >= 50 && s.eligibility.matchPercentage < 90);
+    
+    const matched = getMatchingSchemes(userProfile, schemes);
+    
+    const fullyMatched = matched.filter(s => s.eligibility.matchPercentage === 100);
+    const highMatch = matched.filter(s => s.eligibility.matchPercentage >= 75 && s.eligibility.matchPercentage < 100);
+    const needsMore = matched.filter(s => s.eligibility.matchPercentage >= 50 && s.eligibility.matchPercentage < 75);
+    const lowMatch = matched.filter(s => s.eligibility.matchPercentage < 50);
+    
     const totalBenefit = matched.reduce((sum, scheme) => {
-      return sum + (scheme.benefit?.amount || 0);
+      if (scheme.eligibility.matchPercentage >= 75) {
+        return sum + (scheme.benefit?.amount || 0);
+      }
+      return sum;
     }, 0);
-
+    
     return {
       success: true,
       data: {
         totalSchemes: schemes.length,
         fullyMatched: fullyMatched.length,
         highMatch: highMatch.length,
-        needsMore: 0,
-        lowMatch: Math.max(0, schemes.length - matched.length),
+        needsMore: needsMore.length,
+        lowMatch: lowMatch.length,
         potentialBenefit: totalBenefit,
         schemes: matched
       }
