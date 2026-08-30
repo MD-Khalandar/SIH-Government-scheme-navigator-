@@ -36,27 +36,49 @@ export const Dashboard = () => {
       setSavedSchemes(savedList);
 
       // 2. Format user profile
+      const hasProfileData = profile && Object.values(profile).some(value => {
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'number') return value > 0;
+        const normalized = String(value).trim().toLowerCase();
+        return normalized !== '' && normalized !== 'select' && normalized !== 'any' && normalized !== 'not applicable';
+      });
+
       const userProfile = {
-        age: profile?.age || null,
-        gender: profile?.gender || null,
-        income: profile?.income || null,
-        student: profile?.studying === 'yes',
-        employmentStatus: profile?.occupation || null,
-        occupation: profile?.occupation || null,
-        ownLand: profile?.ownLand === 'yes',
-        landholding: profile?.landholding || null,
-        disability: profile?.disability === 'yes',
-        disabilityPercentage: profile?.disability === 'yes' ? 40 : 0
+        age: profile?.age || 0,
+        gender: profile?.gender || 'Any',
+        income: profile?.income || 100000000,
+        student: profile?.studying === 'Yes',
+        employmentStatus: profile?.occupation || 'Any',
+        occupation: profile?.occupation || 'Any',
+        ownLand: profile?.ownLand === 'Yes',
+        landholding: profile?.landholding || 0,
+        disability: profile?.disability === 'Yes',
+        disabilityPercentage: profile?.disability === 'Yes' ? 40 : 0
       };
 
-      // 3. Get eligibility summary securely
-      const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, allSchemes);
-      
-      if (summaryRes && summaryRes.data) {
-        setSummary(summaryRes.data);
-        setSchemes(Array.isArray(summaryRes.data.schemes) ? summaryRes.data.schemes : []);
+      // 3. If the profile is still empty, show the full scheme catalog instead of empty eligibility cards.
+      if (!hasProfileData) {
+        const fallbackSummary = {
+          totalSchemes: allSchemes.length,
+          highMatch: allSchemes.length,
+          fullyMatched: allSchemes.length,
+          needsMore: 0,
+          lowMatch: 0,
+          potentialBenefit: allSchemes.reduce((sum, scheme) => sum + (scheme.benefit?.amount || 0), 0),
+          schemes: allSchemes
+        };
+        setSummary(fallbackSummary);
+        setSchemes(fallbackSummary.schemes);
       } else {
-        setSchemes([]);
+        const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, allSchemes);
+
+        if (summaryRes && summaryRes.data) {
+          setSummary(summaryRes.data);
+          setSchemes(Array.isArray(summaryRes.data.schemes) ? summaryRes.data.schemes : []);
+        } else {
+          setSummary({ totalSchemes: allSchemes.length, highMatch: 0, fullyMatched: 0, needsMore: 0, lowMatch: allSchemes.length, potentialBenefit: 0, schemes: [] });
+          setSchemes([]);
+        }
       }
     } catch (err) {
       console.error("Error loading dashboard:", err);
@@ -121,20 +143,13 @@ export const Dashboard = () => {
 
             {/* Metric Capsules */}
             {summary && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
                 <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
                   <div className="flex items-center justify-between text-[#177e4f] mb-3">
                     <span className="text-xs font-light text-[#14341e]/60">Potentially Eligible</span>
                     <CheckCircle2 size={18} />
                   </div>
                   <p className="text-3xl font-light text-[#14341e]">{summary.highMatch}</p>
-                </div>
-                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
-                  <div className="flex items-center justify-between text-amber-700 mb-3">
-                    <span className="text-xs font-light text-[#14341e]/60">Needs More Info</span>
-                    <AlertCircle size={18} />
-                  </div>
-                  <p className="text-3xl font-light text-[#14341e]">{summary.needsMore}</p>
                 </div>
                 <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
                   <div className="flex items-center justify-between text-[#177e4f] mb-3">

@@ -11,30 +11,29 @@ export const profileService = {
       return { success: true, data: JSON.parse(profileJson) };
     }
     
-    // Default empty profile
     const defaultProfile = {
-      age: null,
-      gender: null,
-      state: null,
-      district: null,
-      urban: null,
-      socialCategory: null,
-      disability: null,
-      income: null,
-      bpl: null,
-      occupation: null,
-      studying: null,
-      lookingForWork: null,
-      ownLand: null,
-      landholding: null,
+      age: '',
+      gender: '',
+      state: '',
+      district: '',
+      urban: '',
+      socialCategory: '',
+      disability: '',
+      income: '',
+      bpl: '',
+      occupation: '',
+      studying: '',
+      lookingForWork: '',
+      ownLand: '',
+      landholding: '',
       dependents: 0,
       children: 0,
       seniorCitizens: 0,
-      ownHouse: null,
-      housingCondition: null,
-      businessPlanning: null,
-      existingBusiness: null,
-      businessCategory: null,
+      ownHouse: '',
+      housingCondition: '',
+      businessPlanning: '',
+      existingBusiness: '',
+      businessCategory: '',
       selectedLifeEvents: [],
       onboardingStep: 1
     };
@@ -47,7 +46,15 @@ export const profileService = {
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const current = await profileService.getUserProfile();
-    const mergedProfile = { ...current.data, ...profileData };
+    const mergedProfile = {
+      ...current.data,
+      ...profileData,
+      age: profileData?.age !== undefined && profileData.age !== '' ? Number(profileData.age) : current.data.age || '',
+      income: profileData?.income !== undefined && profileData.income !== '' ? Number(profileData.income) : current.data.income || '',
+      dependents: profileData?.dependents !== undefined ? Number(profileData.dependents || 0) : current.data.dependents || 0,
+      children: profileData?.children !== undefined ? Number(profileData.children || 0) : current.data.children || 0,
+      seniorCitizens: profileData?.seniorCitizens !== undefined ? Number(profileData.seniorCitizens || 0) : current.data.seniorCitizens || 0,
+    };
     localStorage.setItem("sahayak_profile", JSON.stringify(mergedProfile));
     return { success: true, data: mergedProfile };
   },

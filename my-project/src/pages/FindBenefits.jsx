@@ -1,184 +1,171 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar, Sidebar, Input, Select, SchemeCard, EmptyState } from '../components';
 import { Search } from 'lucide-react';
 import { schemeService } from '../services/schemeService';
+import { useProfile } from '../contexts/ProfileContext';
+import { eligibilityService } from '../services/eligibilityService';
+
+const normalizeText = (value = '') =>
+  String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const immediateCauseOptions = [
+  { label: 'Child Birth', value: 'child birth' },
+  { label: 'Graduate', value: 'graduate' },
+  { label: 'Marriage', value: 'marriage' },
+  { label: 'Job Loss', value: 'job loss' },
+  { label: 'Disability', value: 'disability' },
+  { label: 'Housing', value: 'housing' },
+  { label: 'Agriculture', value: 'agriculture' },
+  { label: 'Business', value: 'business' },
+  { label: 'Senior Citizen', value: 'senior citizen' }
+];
 
 export const FindBenefits = () => {
   const navigate = useNavigate();
+  const { profile } = useProfile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({ state: '', category: '', ministry: '' });
+  const [filters, setFilters] = useState({ state: '', category: '', ministry: '', immediateCause: '' });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const runSearch = async (customQuery = searchQuery) => {
     setLoading(true);
-    const query = searchQuery.trim().toLowerCase();
-    try {
-      const { data } = await schemeService.getSchemes();
-      const filtered = data.filter((scheme) => {
-        const searchable = `${scheme.name} ${scheme.description} ${scheme.category} ${scheme.ministry}`.toLowerCase();
-        const matchesQuery = !query || searchable.includes(query);
-        const matchesState = !filters.state || scheme.state === 'All India' || scheme.state.toLowerCase() === filters.state;
-        const matchesCategory = !filters.category || scheme.category.toLowerCase() === filters.category;
-        const matchesMinistry = !filters.ministry || scheme.ministry.toLowerCase().includes(filters.ministry);
-        return matchesQuery && matchesState && matchesCategory && matchesMinistry;
-      });
-      setResults(filtered);
 
     try {
-      const { data: allSchemes } = await schemeService.getSchemes();
-      const normalizedQuery = normalizeText(searchQuery);
-      const queryTokens = normalizedQuery ? normalizedQuery.split(' ').filter(Boolean) : [];
-      const selectedFilters = {
-        ...filters,
-        state: filters.state || profile?.state || '',
-        gender: filters.gender || profile?.gender || '',
-        occupation: filters.occupation || profile?.occupation || '',
-        age: filters.age || profile?.age || '',
-        income: filters.income || profile?.income || ''
-      };
+      const { data: schemes } = await schemeService.getSchemes();
+      const query = normalizeText(customQuery);
+      const queryTokens = query ? query.split(' ').filter(Boolean) : [];
+      const activeFilters = Object.values(filters).some(value => String(value || '').trim() !== '');
 
-      const activeFilters = Object.entries(selectedFilters).filter(([_, value]) => {
-        if (value === null || value === undefined) return false;
-        return String(value).trim() !== '';
-      });
-
-      const matchText = (value, target) => {
-        if (!target) return true;
-        const haystack = normalizeText(value || '');
-        const needle = normalizeText(target);
-        return haystack.includes(needle) || needle.includes(haystack);
-      };
-
-      const schemeScores = allSchemes.map((scheme) => {
-        const nameText = normalizeText(scheme.name);
-        const searchableText = [
-          scheme.name,
-          scheme.description,
-          scheme.category,
-          scheme.ministry,
-          scheme.state,
-          scheme.immediateCause || '',
-          ...(scheme.keywords || []),
-          ...(scheme.eligibilityCriteria || []),
-          ...(scheme.documents || [])
-        ].join(' ');
-        const haystack = normalizeText(searchableText);
-
-        let score = 0;
-
-        if (normalizedQuery) {
-          if (nameText.includes(normalizedQuery)) score += 28;
-          if (haystack.includes(normalizedQuery)) score += 12;
-          queryTokens.forEach((token) => {
-            if (nameText.includes(token)) score += 10;
-            if (haystack.includes(token)) score += 5;
-          });
-        }
-
-        if (activeFilters.length === 0 && !normalizedQuery) {
-          score = 1;
-        }
-
-        if (selectedFilters.cause) {
-          if (matchText(scheme.immediateCause, selectedFilters.cause)) score += 16;
-          if (matchText(scheme.name, selectedFilters.cause)) score += 8;
-        }
-
-        if (selectedFilters.category) {
-          if (matchText(scheme.category, selectedFilters.category)) score += 12;
-        }
-
-        if (selectedFilters.ministry) {
-          if (matchText(scheme.ministry, selectedFilters.ministry)) score += 10;
-        }
-
-        if (selectedFilters.state) {
-          if (matchText(scheme.state, selectedFilters.state) || normalizeText(scheme.state) === 'all india') score += 10;
-        }
-
-        if (selectedFilters.gender) {
-          const genderMatch = (scheme.eligibilityRules || []).some(rule => rule.field === 'gender' && normalizeText(String(rule.value)) === normalizeText(selectedFilters.gender));
-          if (genderMatch || matchText([scheme.name, scheme.description].join(' '), selectedFilters.gender)) score += 8;
-        }
-
-        if (selectedFilters.occupation) {
-          const occupationMatch = (scheme.eligibilityRules || []).some(rule => rule.field === 'occupation' && normalizeText(String(rule.value)) === normalizeText(selectedFilters.occupation));
-          if (occupationMatch || matchText([scheme.name, scheme.description].join(' '), selectedFilters.occupation)) score += 8;
-        }
-
-        if (selectedFilters.age) {
-          const ageValue = Number(selectedFilters.age);
-          const ageRules = (scheme.eligibilityRules || []).filter(rule => rule.field === 'age');
-          if (ageRules.length === 0) {
-            score += 2;
-          } else if (ageRules.some(rule => {
-            const threshold = Number(rule.value);
-            if (Number.isNaN(threshold)) return false;
-            if (rule.operator === '>=' && ageValue >= threshold) return true;
-            if (rule.operator === '<=' && ageValue <= threshold) return true;
-            if (rule.operator === '>' && ageValue > threshold) return true;
-            if (rule.operator === '<' && ageValue < threshold) return true;
-            return false;
-          })) {
-            score += 10;
-          }
-        }
-
-        if (selectedFilters.income) {
-          const incomeValue = Number(selectedFilters.income);
-          const incomeRules = (scheme.eligibilityRules || []).filter(rule => rule.field === 'income');
-          if (incomeRules.length === 0) {
-            score += 2;
-          } else if (incomeRules.some(rule => {
-            const limit = Number(rule.value);
-            if (Number.isNaN(limit)) return false;
-            if (rule.operator === '<=' && incomeValue <= limit) return true;
-            if (rule.operator === '>=' && incomeValue >= limit) return true;
-            if (rule.operator === '<' && incomeValue < limit) return true;
-            if (rule.operator === '>' && incomeValue > limit) return true;
-            return false;
-          })) {
-            score += 10;
-          }
-        }
-
-        return {
-          ...scheme,
-          matchScore: score,
-          scoreBreakdown: {
-            query: normalizedQuery,
-            filters: activeFilters.length
-          }
-        };
-      });
-
-      let resultsList = schemeScores
-        .filter((scheme) => {
-          if (!normalizedQuery && activeFilters.length === 0) return true;
-          return scheme.matchScore > 0;
-        })
-        .sort((a, b) => b.matchScore - a.matchScore)
-        .slice(0, 20);
-
-      if (resultsList.length === 0 && normalizedQuery) {
-        resultsList = schemeScores
-          .filter((scheme) => {
-            const directName = normalizeText(scheme.name);
-            const tokens = queryTokens.length ? queryTokens : [normalizedQuery];
-            return tokens.some(token => directName.includes(token) || normalizeText(scheme.immediateCause || '').includes(token));
-          })
-          .sort((a, b) => b.matchScore - a.matchScore)
-          .slice(0, 8);
+      if (!query && !activeFilters) {
+        setResults(Array.isArray(schemes) ? schemes : []);
+        setLoading(false);
+        return;
       }
 
-      setResults(resultsList);
+      const userProfile = {
+        age: profile?.age ?? 0,
+        income: profile?.income ?? 0,
+        gender: profile?.gender ?? '',
+        occupation: profile?.occupation ?? '',
+        studying: profile?.studying ?? '',
+        lookingForWork: profile?.lookingForWork ?? '',
+        bpl: profile?.bpl ?? '',
+        ownLand: profile?.ownLand ?? '',
+        disability: profile?.disability ?? '',
+        state: profile?.state ?? ''
+      };
+
+      const ranked = await eligibilityService.getMatchingSchemes(userProfile, schemes);
+
+      const filtered = ranked
+        .map((scheme) => {
+          const searchable = [
+            scheme.name,
+            scheme.description,
+            scheme.category,
+            scheme.ministry,
+            scheme.state,
+            ...(scheme.keywords || []),
+            ...(scheme.eligibilityCriteria || []),
+            ...(scheme.documents || []),
+            scheme.immediateCause || ''
+          ].join(' ');
+
+          const haystack = normalizeText(searchable);
+          let score = 0;
+
+          if (!query && !activeFilters) {
+            score = 10;
+          } else {
+            if (normalizeText(scheme.name).includes(query)) score += 35;
+            if (haystack.includes(query)) score += 18;
+            queryTokens.forEach((token) => {
+              if (normalizeText(scheme.name).includes(token)) score += 12;
+              if (haystack.includes(token)) score += 6;
+            });
+
+            if (filters.immediateCause) {
+              const causeMatch = normalizeText(scheme.immediateCause || '').includes(normalizeText(filters.immediateCause)) || normalizeText(scheme.name).includes(normalizeText(filters.immediateCause));
+              if (causeMatch) score += 20;
+              else score -= 50;
+            }
+
+            if (filters.state) {
+              const stateMatch = normalizeText(scheme.state).includes(normalizeText(filters.state)) || normalizeText(scheme.state) === 'all india';
+              if (stateMatch) score += 10; else score -= 50;
+            }
+
+            if (filters.category) {
+              const categoryMatch = normalizeText(scheme.category).includes(normalizeText(filters.category));
+              if (categoryMatch) score += 10; else score -= 50;
+            }
+
+            if (filters.ministry) {
+              const ministryMatch = normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
+              if (ministryMatch) score += 8; else score -= 50;
+            }
+          }
+
+          return { ...scheme, matchScore: score > 0 ? score : 1 };
+        })
+        .filter((scheme) => {
+          if (!query && !activeFilters) {
+            return true;
+          }
+
+          const searchable = [
+            scheme.name,
+            scheme.description,
+            scheme.category,
+            scheme.ministry,
+            scheme.state,
+            ...(scheme.keywords || []),
+            ...(scheme.eligibilityCriteria || []),
+            ...(scheme.documents || []),
+            scheme.immediateCause || ''
+          ].join(' ');
+
+          const haystack = normalizeText(searchable);
+          const matchesName = !query || normalizeText(scheme.name).includes(query) || haystack.includes(query);
+          const matchesImmediateCause = !filters.immediateCause || normalizeText(scheme.immediateCause || '').includes(normalizeText(filters.immediateCause)) || normalizeText(scheme.name).includes(normalizeText(filters.immediateCause));
+          const matchesState = !filters.state || normalizeText(scheme.state).includes(normalizeText(filters.state)) || normalizeText(scheme.state) === 'all india';
+          const matchesCategory = !filters.category || normalizeText(scheme.category).includes(normalizeText(filters.category));
+          const matchesMinistry = !filters.ministry || normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
+          const matchesQueryTokens = !query || queryTokens.some((token) => haystack.includes(token) || normalizeText(scheme.name).includes(token));
+
+          return matchesName && matchesImmediateCause && matchesState && matchesCategory && matchesMinistry && matchesQueryTokens;
+        })
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, 30);
+
+      if (!query && !activeFilters) {
+        setResults(Array.isArray(schemes) ? schemes : []);
+        return;
+      }
+
+      setResults(filtered.length ? filtered : []);
+    } catch (error) {
+      console.error('FindBenefits search failed:', error);
+      setResults([]);
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    runSearch();
+  }, [profile, searchQuery, filters]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    await runSearch();
   };
 
   return (
@@ -196,11 +183,21 @@ export const FindBenefits = () => {
             <form onSubmit={handleSearch} className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 space-y-5 mb-8">
               <div className="grid md:grid-cols-2 gap-4">
                 <Input
-                  label="Search parameters"
-                  placeholder="Scheme designation, key provisions, nodal body..."
+                  label="Search by scheme name or keyword"
+                  placeholder="Enter scheme name, scholarship, pension, loan..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                <Select
+                  label="Immediate Cause"
+                  placeholder="Any life event"
+                  value={filters.immediateCause}
+                  onChange={(e) => setFilters(prev => ({ ...prev, immediateCause: e.target.value }))}
+                  options={immediateCauseOptions}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
                 <Select
                   label="State Jurisdiction"
                   placeholder="All Territories"
@@ -209,12 +206,10 @@ export const FindBenefits = () => {
                   options={[
                     { label: 'Karnataka', value: 'karnataka' },
                     { label: 'Maharashtra', value: 'maharashtra' },
-                    { label: 'Delhi', value: 'delhi' }
+                    { label: 'Delhi', value: 'delhi' },
+                    { label: 'All India', value: 'all india' }
                   ]}
                 />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
                 <Select
                   label="Classification"
                   placeholder="All sectors"
@@ -223,9 +218,14 @@ export const FindBenefits = () => {
                   options={[
                     { label: 'Education & Research', value: 'education' },
                     { label: 'Employment & Skilling', value: 'employment' },
-                    { label: 'Agriculture & Agritech', value: 'agriculture' }
+                    { label: 'Agriculture & Agritech', value: 'agriculture' },
+                    { label: 'Healthcare', value: 'healthcare' },
+                    { label: 'Housing', value: 'housing' }
                   ]}
                 />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
                 <Select
                   label="Ministry / Department"
                   placeholder="All Authorities"
@@ -234,30 +234,33 @@ export const FindBenefits = () => {
                   options={[
                     { label: 'Education', value: 'education' },
                     { label: 'Labour & Employment', value: 'labour' },
-                    { label: 'Agriculture & Farmers Welfare', value: 'agriculture' }
+                    { label: 'Agriculture & Farmers Welfare', value: 'agriculture' },
+                    { label: 'Health & Family Welfare', value: 'health' },
+                    { label: 'Social Justice', value: 'social' }
                   ]}
                 />
+                <div className="flex items-end">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#177e4f] text-white text-xs font-normal hover:bg-[#14341e] transition shadow-sm"
+                  >
+                    <Search size={14} className="text-[#4ae278]" />
+                    <span>Search Schemes</span>
+                  </button>
+                </div>
               </div>
-
-              <button
-                type="submit"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#177e4f] text-white text-xs font-normal hover:bg-[#14341e] transition shadow-sm"
-              >
-                <Search size={14} className="text-[#4ae278]" />
-                <span>Search Directives</span>
-              </button>
             </form>
 
             {results === null ? (
               <div className="rounded-2xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-5 text-center">
                 <p className="text-xs text-[#14341e]/70 font-light leading-relaxed">
-                  Filter and inspect central gazettes and state notifications without registration requirements.
+                  Review schemes by name, life event, or profile relevance.
                 </p>
               </div>
             ) : loading ? (
               <p className="text-center text-gray-600">Searching schemes…</p>
             ) : results.length === 0 ? (
-              <EmptyState icon={Search} title="No schemes found" description="Try a broader search or clear one of the filters." />
+              <EmptyState icon={Search} title="No schemes found" description="Try a broader keyword or clear the filters." />
             ) : (
               <div className="grid gap-6">
                 <p className="text-sm text-gray-600">{results.length} scheme{results.length === 1 ? '' : 's'} found</p>
@@ -265,7 +268,7 @@ export const FindBenefits = () => {
                   <SchemeCard
                     key={scheme.id}
                     scheme={scheme}
-                    eligibility={{ matchPercentage: 0 }}
+                    eligibility={scheme.eligibility || { matchPercentage: 0 }}
                     onViewDetails={() => navigate(`/app/schemes/${scheme.id}`)}
                     onSave={() => schemeService.saveScheme(scheme.id)}
                   />
