@@ -17,6 +17,11 @@ export const OTPVerification = () => {
   const [canResend, setCanResend] = useState(false);
 
   useEffect(() => {
+    if (mode !== 'phone-login' && mode !== 'phone-register') {
+      navigate('/login', { replace: true });
+      return undefined;
+    }
+
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -72,8 +77,7 @@ export const OTPVerification = () => {
         return;
       }
 
-      await authService.verifyOTP(otpValue);
-      navigate('/app/onboarding');
+      throw new Error('Start phone verification from the login or registration page.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -86,8 +90,6 @@ export const OTPVerification = () => {
     try {
       if (mode === 'phone-login' || mode === 'phone-register') {
         await authService.sendPhoneOTP(phone, fullName);
-      } else {
-        await authService.sendOTP(phone);
       }
       setTimeLeft(30);
       setCanResend(false);
@@ -137,9 +139,6 @@ export const OTPVerification = () => {
                 />
               ))}
             </div>
-            <p className="text-center text-sm text-gray-600 mt-3">
-              Demo OTP: 123456
-            </p>
           </div>
 
           <div className="text-center">

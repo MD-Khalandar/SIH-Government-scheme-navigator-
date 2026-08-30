@@ -3,6 +3,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPhoneNumber,
   signOut,
+  sendPasswordResetEmail,
   updateProfile,
   RecaptchaVerifier
 } from 'firebase/auth';
@@ -10,7 +11,13 @@ import { auth } from '../../firebase';
 
 let recaptchaVerifier = null;
 let pendingPhoneConfirmation = null;
-let pendingPhoneRegistration = null;
+
+const getConfiguredAuth = () => {
+  if (!auth) {
+    throw new Error('Firebase is not configured. Add valid VITE_FIREBASE_* values to .env.local and restart the dev server.');
+  }
+  return auth;
+};
 
 const normalizePhoneNumber = (phone) => {
   if (!phone) return '';
@@ -39,7 +46,7 @@ const ensureRecaptcha = () => {
   container.style.display = 'none';
   document.body.appendChild(container);
 
-  recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+  recaptchaVerifier = new RecaptchaVerifier(getConfiguredAuth(), 'recaptcha-container', {
     size: 'invisible',
     callback: () => {},
     'expired-callback': () => {
@@ -69,7 +76,7 @@ const storeCurrentUser = (user) => {
   }
 
   localStorage.setItem('sahayak_user', JSON.stringify(user));
-  localStorage.setItem('sahayak_token', auth.currentUser?.accessToken || 'firebase-phone-auth');
+  localStorage.setItem('sahayak_token', auth?.currentUser?.accessToken || 'firebase-phone-auth');
 };
 
 export const authService = {
@@ -91,7 +98,7 @@ export const authService = {
     }
 
     const userCredential = await createUserWithEmailAndPassword(
-      auth,
+      getConfiguredAuth(),
       data.email.trim(),
       data.password
     );
@@ -121,7 +128,7 @@ export const authService = {
       throw new Error('Please use your email address to sign in');
     }
 
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(getConfiguredAuth(), email, password);
     const user = mapFirebaseUser(userCredential.user);
 
     storeCurrentUser(user);
@@ -129,7 +136,7 @@ export const authService = {
     return { success: true, user };
   },
 
-  sendPhoneOTP: async (phone, fullName = '') => {
+  sendPhoneOTP: async (phone) => {
     const normalizedPhone = normalizePhoneNumber(phone);
     if (!normalizedPhone) {
       throw new Error('Phone number is required');
@@ -140,8 +147,7 @@ export const authService = {
       throw new Error('Phone authentication is not available in this browser');
     }
 
-    pendingPhoneRegistration = fullName ? { fullName } : null;
-    pendingPhoneConfirmation = await signInWithPhoneNumber(auth, normalizedPhone, verifier);
+    pendingPhoneConfirmation = await signInWithPhoneNumber(getConfiguredAuth(), normalizedPhone, verifier);
 
     return { success: true, message: `OTP sent to ${normalizedPhone}` };
   },
@@ -156,7 +162,6 @@ export const authService = {
 
     storeCurrentUser(user);
     pendingPhoneConfirmation = null;
-    pendingPhoneRegistration = null;
     return { success: true, user };
   },
 
@@ -180,7 +185,6 @@ export const authService = {
 
     storeCurrentUser(finalUser);
     pendingPhoneConfirmation = null;
-    pendingPhoneRegistration = null;
     return { success: true, user: finalUser };
   },
 
@@ -188,47 +192,16 @@ export const authService = {
     return authService.sendPhoneOTP(phone);
   },
 
-  verifyOTP: async (otp) => {
-    if (!otp) {
-      throw new Error('OTP is required');
-    }
-
-    return { success: true, message: 'OTP verified successfully' };
-  },
-
-  forgotPassword: async (emailOrPhone) => {
-    if (!emailOrPhone) {
+  forgotPassword: async (email) => {
+    if (!email || !email.includes('@')) {
       throw new Error('Email is required');
     }
-
-    return { success: true, message: `Reset link sent to ${emailOrPhone}` };
-  },
-
-  resetPassword: async (newPassword, confirmPassword) => {
-    if (!newPassword || !confirmPassword) {
-      throw new Error('Passwords are required');
-    }
-
-    if (newPassword !== confirmPassword) {
-      throw new Error('Passwords do not match');
-    }
-
-    if (newPassword.length < 6) {
-      throw new Error('Password must be at least 6 characters');
-    }
-
-    return { success: true, message: 'Password reset successfully' };
+    await sendPasswordResetEmail(getConfiguredAuth(), email.trim());
+    return { success: true, message: `Password reset link sent to ${email}` };
   },
 
   getCurrentUser: () => {
-    const userJson = localStorage.getItem('sahayak_user');
-    const token = localStorage.getItem('sahayak_token');
-
-    if (userJson && token) {
-      return JSON.parse(userJson);
-    }
-
-    if (auth.currentUser) {
+    if (auth?.currentUser) {
       return mapFirebaseUser(auth.currentUser);
     }
 
@@ -236,12 +209,12 @@ export const authService = {
   },
 
   isAuthenticated: () => {
-    return !!localStorage.getItem('sahayak_token') || !!auth.currentUser;
+    return !!auth?.currentUser;
   },
 
   logout: async () => {
     try {
-      await signOut(auth);
+      if (auth) await signOut(auth);
     } catch (error) {
       console.warn('Firebase sign-out warning:', error);
     }
@@ -250,7 +223,6 @@ export const authService = {
     localStorage.removeItem('sahayak_token');
     localStorage.removeItem('sahayak_profile');
     pendingPhoneConfirmation = null;
-    pendingPhoneRegistration = null;
 
     if (recaptchaVerifier) {
       recaptchaVerifier.clear();

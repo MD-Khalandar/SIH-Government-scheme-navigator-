@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '../contexts/ProfileContext';
 import { Stepper, Button, Card } from '../components';
@@ -14,8 +14,15 @@ export const Onboarding = () => {
   const navigate = useNavigate();
   const { profile, updateProfile } = useProfile();
   const [currentStep, setCurrentStep] = useState(profile?.onboardingStep || 1);
+  const [formData, setFormData] = useState({
+    age: profile?.age ?? '', gender: profile?.gender ?? '', state: profile?.state ?? '',
+    urban: profile?.urban ?? '', dependents: profile?.dependents ?? '', children: profile?.children ?? ''
+  });
 
-  const handleNext = () => {
+  const updateField = (event) => setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+
+  const handleNext = async () => {
+    await updateProfile({ ...formData, age: formData.age ? Number(formData.age) : null, onboardingStep: currentStep + 1 });
     if (currentStep < onboardingSteps.length) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -55,19 +62,22 @@ export const Onboarding = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Your Age</label>
                 <input
                   type="number"
+                  name="age"
                   min="1"
                   max="120"
                   placeholder="Enter your age"
+                  value={formData.age}
+                  onChange={updateField}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
-                  <option>Select gender</option>
-                  <option>Male</option>
-                  <option>Female</option>
-                  <option>Other</option>
+                <select name="gender" value={formData.gender} onChange={updateField} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
             </div>
@@ -78,22 +88,22 @@ export const Onboarding = () => {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">State</label>
-                <select className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
-                  <option>Select your state</option>
-                  <option>Karnataka</option>
-                  <option>Maharashtra</option>
-                  <option>Delhi</option>
+                <select name="state" value={formData.state} onChange={updateField} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue bg-white">
+                  <option value="">Select your state</option>
+                  <option value="karnataka">Karnataka</option>
+                  <option value="maharashtra">Maharashtra</option>
+                  <option value="delhi">Delhi</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Urban or Rural?</label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="area" defaultChecked />
+                    <input type="radio" name="urban" value="urban" checked={formData.urban === 'urban'} onChange={updateField} />
                     <span>Urban</span>
                   </label>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="area" />
+                    <input type="radio" name="urban" value="rural" checked={formData.urban === 'rural'} onChange={updateField} />
                     <span>Rural</span>
                   </label>
                 </div>
@@ -108,8 +118,11 @@ export const Onboarding = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Number of Dependents</label>
                 <input
                   type="number"
+                  name="dependents"
                   min="0"
                   placeholder="0"
+                  value={formData.dependents}
+                  onChange={updateField}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>
@@ -117,8 +130,11 @@ export const Onboarding = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Number of Children</label>
                 <input
                   type="number"
+                  name="children"
                   min="0"
                   placeholder="0"
+                  value={formData.children}
+                  onChange={updateField}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 />
               </div>

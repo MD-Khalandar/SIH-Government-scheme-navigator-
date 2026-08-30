@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 import { Button, Input, Card } from '../components';
 
 export const Register = () => {
@@ -50,7 +51,6 @@ export const Register = () => {
     setLoading(true);
     try {
       if (registerMethod === 'phone') {
-        const authService = (await import('../services/authService')).default;
         await authService.sendPhoneOTP(formData.phone, formData.fullName);
         navigate('/verify-otp', {
           state: {

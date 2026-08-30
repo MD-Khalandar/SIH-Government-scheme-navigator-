@@ -1,7 +1,8 @@
-// Mock schemes data - For demonstration only
-// These are DEMO schemes and do not represent actual government eligibility
+import schemeMaster from '../../myScheme_164_Schemes_Master.json';
 
-export const mockSchemes = [
+// Legacy demo data retained only as a fallback reference.
+
+export const demoSchemes = [
   {
     id: 1,
     name: "Demo Higher Education Scholarship",
@@ -297,6 +298,27 @@ export const mockSchemes = [
     deadline: "2026-12-31"
   }
 ];
+
+// Normalize the myScheme master file into the shape consumed by the UI.
+export const mockSchemes = schemeMaster.schemes.map((scheme) => ({
+  id: scheme.scheme_id,
+  name: scheme.scheme_name,
+  description: scheme.description?.overview || scheme.description?.benefits || 'Details are available on the official portal.',
+  category: scheme.category,
+  ministry: scheme.jurisdiction?.ministry || 'Government of India',
+  state: scheme.jurisdiction?.state_ut || 'All India',
+  lifeEvents: [],
+  benefit: { amount: null, frequency: 'one-time', currency: 'INR' },
+  eligibilityRules: [],
+  eligibilityCriteria: scheme.eligibility?.criteria || [],
+  documents: scheme.requirements?.documents || [],
+  applicationSteps: [scheme.application?.mode ? `Apply ${scheme.application.mode.toLowerCase()}` : 'Check the official portal for application steps'],
+  officialUrl: scheme.application?.official_portal || scheme.application?.myscheme_portal || '',
+  lastVerified: null,
+  source: scheme.application?.myscheme_portal || 'myScheme Portal',
+  applicationMode: scheme.application?.mode || 'See official portal',
+  deadline: null
+}));
 
 export const mockDocuments = [
   { id: 1, name: "Aadhaar", required: false, ready: false },

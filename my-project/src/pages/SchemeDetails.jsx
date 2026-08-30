@@ -31,7 +31,7 @@ export const SchemeDetails = () => {
       setScheme(res.data);
       
       // Check if saved
-      const saved = await schemeService.isSchemeSaved(parseInt(id));
+      const saved = await schemeService.isSchemeSaved(id);
       setIsSaved(saved);
 
       // Load documents for this scheme
@@ -52,10 +52,10 @@ export const SchemeDetails = () => {
   const handleSave = async () => {
     try {
       if (isSaved) {
-        await schemeService.removeSavedScheme(parseInt(id));
+        await schemeService.removeSavedScheme(id);
         setIsSaved(false);
       } else {
-        await schemeService.saveScheme(parseInt(id));
+        await schemeService.saveScheme(id);
         setIsSaved(true);
       }
     } catch (err) {
@@ -66,6 +66,9 @@ export const SchemeDetails = () => {
   const handleApply = async () => {
     try {
       await applicationService.createApplication(scheme.id, scheme.name);
+      if (scheme.officialUrl) {
+        window.open(scheme.officialUrl, '_blank', 'noopener,noreferrer');
+      }
       navigate(`/app/applications`);
     } catch (err) {
       console.error(err);
@@ -174,15 +177,15 @@ export const SchemeDetails = () => {
             <Card className="mb-8">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Eligibility Requirements</h2>
               <div className="space-y-3">
-                {scheme.eligibilityRules?.map((rule, idx) => (
+                {(scheme.eligibilityCriteria || scheme.eligibilityRules || []).map((rule, idx) => (
                   <div key={idx} className="flex items-start gap-3">
                     <CheckCircle2 size={20} className="text-green-600 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-medium text-gray-900 capitalize">
-                        {rule.field.replace(/([A-Z])/g, ' $1')}
+                        {typeof rule === 'string' ? rule : rule.field.replace(/([A-Z])/g, ' $1')}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Must be {rule.operator} {rule.value}
+                        {typeof rule === 'string' ? 'Check the official criteria.' : `Must be ${rule.operator} ${rule.value}`}
                       </p>
                     </div>
                   </div>

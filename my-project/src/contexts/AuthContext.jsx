@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { auth, firebaseConfigurationError, isFirebaseConfigured } from '../../firebase';
 import authService from '../services/authService';
 
 const AuthContext = createContext();
@@ -11,14 +11,21 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!auth) {
+      setError(firebaseConfigurationError
+        ? 'Firebase configuration is invalid. Check the VITE_FIREBASE_* values in .env.local.'
+        : 'Firebase is not configured. Add valid VITE_FIREBASE_* values to .env.local.');
+      setLoading(false);
+      return undefined;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      const currentUser = authService.getCurrentUser();
-      setUser(currentUser || (firebaseUser ? {
+      setUser(firebaseUser ? {
         id: firebaseUser.uid,
         name: firebaseUser.displayName || '',
         email: firebaseUser.email || '',
         phone: firebaseUser.phoneNumber || ''
-      } : null));
+      } : null);
       setLoading(false);
     });
 
@@ -68,6 +75,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     error,
+    isFirebaseConfigured,
     login,
     register,
     logout,

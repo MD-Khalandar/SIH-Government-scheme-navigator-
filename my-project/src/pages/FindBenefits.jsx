@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navbar, Sidebar, Button, Input, Select, SchemeCard, EmptyState } from '../components';
 import { schemeService } from '../services/schemeService';
