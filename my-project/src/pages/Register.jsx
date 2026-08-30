@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 import { Button, Input, Card } from '../components';
 
 export const Register = () => {
@@ -44,6 +45,7 @@ export const Register = () => {
     setLoading(true);
     try {
       await register(formData);
+      await authService.sendOTP(formData.phone);
       navigate('/verify-otp', { state: { phone: formData.phone } });
     } catch (err) {
       setErrors({ submit: err.message });

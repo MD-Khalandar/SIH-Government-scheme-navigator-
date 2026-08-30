@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Navbar, Sidebar, Button, Input, Select } from '../components';
+import { Navbar, Sidebar, Button, Input, Select, SchemeCard, EmptyState } from '../components';
+import { schemeService } from '../services/schemeService';
+import { Search } from 'lucide-react';
 
 export const FindBenefits = () => {
   const navigate = useNavigate();
@@ -11,10 +13,27 @@ export const FindBenefits = () => {
     category: '',
     ministry: ''
   });
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
-    // Search functionality would be implemented here
+    setLoading(true);
+    const query = searchQuery.trim().toLowerCase();
+    try {
+      const { data } = await schemeService.getSchemes();
+      const filtered = data.filter((scheme) => {
+        const searchable = `${scheme.name} ${scheme.description} ${scheme.category} ${scheme.ministry}`.toLowerCase();
+        const matchesQuery = !query || searchable.includes(query);
+        const matchesState = !filters.state || scheme.state === 'All India' || scheme.state.toLowerCase() === filters.state;
+        const matchesCategory = !filters.category || scheme.category.toLowerCase() === filters.category;
+        const matchesMinistry = !filters.ministry || scheme.ministry.toLowerCase().includes(filters.ministry);
+        return matchesQuery && matchesState && matchesCategory && matchesMinistry;
+      });
+      setResults(filtered);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -80,11 +99,14 @@ export const FindBenefits = () => {
               </Button>
             </form>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+            {results === null ? <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
               <p className="text-gray-700">
                 Use the search filters to browse and discover government schemes that may be relevant to you.
               </p>
-            </div>
+            </div> : loading ? <p className="text-center text-gray-600">Searching schemes…</p> : results.length === 0 ? <EmptyState icon={Search} title="No schemes found" description="Try a broader search or clear one of the filters." /> : <div className="grid gap-6">
+              <p className="text-sm text-gray-600">{results.length} scheme{results.length === 1 ? '' : 's'} found</p>
+              {results.map((scheme) => <SchemeCard key={scheme.id} scheme={scheme} eligibility={{ matchPercentage: 0 }} onViewDetails={() => navigate(`/app/schemes/${scheme.id}`)} onSave={() => schemeService.saveScheme(scheme.id)} />)}
+            </div>}
           </div>
         </main>
       </div>

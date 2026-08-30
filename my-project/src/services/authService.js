@@ -110,6 +110,8 @@ export const authService = {
 
     localStorage.setItem("sahayak_reset_contact", emailOrPhone);
     localStorage.setItem("sahayak_reset_otp", DEMO_OTP);
+    // Reuse the verification flow used by the OTP screen.
+    localStorage.setItem("sahayak_otp", DEMO_OTP);
 
     return { success: true, message: `Reset code sent to ${emailOrPhone}` };
   },
