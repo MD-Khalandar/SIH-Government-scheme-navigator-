@@ -75,7 +75,6 @@ export const schemeService = {
     }
   },
 
-  // Added Missing Bookmark / Saved Schemes Handlers
   getSavedSchemes: async (userId) => {
     try {
       if (!userId) return { success: true, data: [] };

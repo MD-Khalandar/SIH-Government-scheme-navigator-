@@ -68,16 +68,17 @@ export const Dashboard = () => {
   };
 
   const handleSaveScheme = async (schemeId) => {
+    if (!user?.uid) return;
     try {
       if (savedSchemes.includes(schemeId)) {
-        await schemeService.removeSavedScheme(schemeId);
+        await schemeService.removeSavedScheme(user.uid, schemeId);
         setSavedSchemes(prev => prev.filter(id => id !== schemeId));
       } else {
-        await schemeService.saveScheme(schemeId);
+        await schemeService.saveScheme(user.uid, schemeId);
         setSavedSchemes(prev => [...prev, schemeId]);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Error toggling saved scheme:", err);
     }
   };
 
