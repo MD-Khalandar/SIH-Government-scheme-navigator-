@@ -81,36 +81,35 @@ export const FindBenefits = () => {
           const haystack = normalizeText(searchable);
           let score = 0;
 
-          if (!query && !activeFilters) {
-            score = 10;
-          } else {
+          if (query) {
             if (normalizeText(scheme.name).includes(query)) score += 35;
             if (haystack.includes(query)) score += 18;
             queryTokens.forEach((token) => {
               if (normalizeText(scheme.name).includes(token)) score += 12;
               if (haystack.includes(token)) score += 6;
             });
+          } else {
+            score = 10;
+          }
 
-            if (filters.immediateCause) {
-              const causeMatch = normalizeText(scheme.immediateCause || '').includes(normalizeText(filters.immediateCause)) || normalizeText(scheme.name).includes(normalizeText(filters.immediateCause));
-              if (causeMatch) score += 20;
-              else score -= 50;
-            }
+          if (filters.immediateCause) {
+            const causeMatch = normalizeText(scheme.immediateCause || '').includes(normalizeText(filters.immediateCause)) || normalizeText(scheme.name).includes(normalizeText(filters.immediateCause));
+            if (causeMatch) score += 20; else score -= 50;
+          }
 
-            if (filters.state) {
-              const stateMatch = normalizeText(scheme.state).includes(normalizeText(filters.state)) || normalizeText(scheme.state) === 'all india';
-              if (stateMatch) score += 10; else score -= 50;
-            }
+          if (filters.state) {
+            const stateMatch = normalizeText(scheme.state).includes(normalizeText(filters.state)) || normalizeText(scheme.state) === 'all india';
+            if (stateMatch) score += 10; else score -= 50;
+          }
 
-            if (filters.category) {
-              const categoryMatch = normalizeText(scheme.category).includes(normalizeText(filters.category));
-              if (categoryMatch) score += 10; else score -= 50;
-            }
+          if (filters.category) {
+            const categoryMatch = normalizeText(scheme.category).includes(normalizeText(filters.category));
+            if (categoryMatch) score += 10; else score -= 50;
+          }
 
-            if (filters.ministry) {
-              const ministryMatch = normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
-              if (ministryMatch) score += 8; else score -= 50;
-            }
+          if (filters.ministry) {
+            const ministryMatch = normalizeText(scheme.ministry).includes(normalizeText(filters.ministry));
+            if (ministryMatch) score += 8; else score -= 50;
           }
 
           return { ...scheme, matchScore: score > 0 ? score : 1 };
@@ -143,7 +142,7 @@ export const FindBenefits = () => {
           return matchesName && matchesImmediateCause && matchesState && matchesCategory && matchesMinistry && matchesQueryTokens;
         })
         .sort((a, b) => b.matchScore - a.matchScore)
-        .slice(0, 30);
+        .slice(0, 60);
 
       if (!query && !activeFilters) {
         setResults(Array.isArray(schemes) ? schemes : []);
