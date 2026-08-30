@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@1,500;1,600&display=swap');
+
+/* Smooth Scrolling & Section Offset */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Prevents the sticky navigation bar from covering section titles */
+#hero,
+#pathway,
+#benefits,
+#citizens {
+  scroll-margin-top: 6rem;
+}
+
+/* Typography Utility */
+.font-jakarta {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+.font-editorial {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Ambient Radial Mesh Accents */
+.ambient-glow-top {
+  background: radial-gradient(circle at center, rgba(74, 226, 120, 0.28) 0%, rgba(23, 126, 79, 0.12) 45%, transparent 75%);
+}
+
+.ambient-glow-mid {
+  background: radial-gradient(circle at center, rgba(254, 240, 138, 0.25) 0%, rgba(74, 226, 120, 0.15) 40%, transparent 70%);
+}
+
+.ambient-glow-bottom {
+  background: radial-gradient(circle at center, rgba(20, 52, 30, 0.18) 0%, rgba(23, 126, 79, 0.10) 50%, transparent 75%);
+}
+
+/* Fluid Frosted Glass Panels */
+.glass-nav {
+  background-color: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
+
+.glass-panel {
+  background-color: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+}
+
+.glass-panel-subtle {
+  background-color: rgba(255, 255, 255, 0.52);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+}
+
+.glass-pill {
+  background-color: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
