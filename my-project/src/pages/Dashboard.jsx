@@ -23,14 +23,19 @@ export const Dashboard = () => {
     loadDashboard();
   }, [profile]);
 
-  const loadDashboard = async () => {
+ const loadDashboard = async () => {
     setLoading(true);
     setError(null);
     try {
+      // 1. Fetch schemes and saved schemes with safeguards
       const schemesRes = await schemeService.getSchemes();
-      const savedRes = await schemeService.getSavedSchemes();
-      setSavedSchemes(savedRes.data.map(s => s.id));
+      const savedRes = await schemeService.getSavedSchemes(user?.uid);
 
+      const allSchemes = Array.isArray(schemesRes?.data) ? schemesRes.data : [];
+      const savedList = Array.isArray(savedRes?.data) ? savedRes.data.map(s => s.schemeId || s.id) : [];
+      setSavedSchemes(savedList);
+
+      // 2. Format user profile
       const userProfile = {
         age: profile?.age || null,
         gender: profile?.gender || null,
@@ -44,11 +49,19 @@ export const Dashboard = () => {
         disabilityPercentage: profile?.disability === 'yes' ? 40 : 0
       };
 
-      const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, schemesRes.data);
-      setSummary(summaryRes.data);
-      setSchemes(summaryRes.data.schemes);
+      // 3. Get eligibility summary securely
+      const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, allSchemes);
+      
+      if (summaryRes && summaryRes.data) {
+        setSummary(summaryRes.data);
+        setSchemes(Array.isArray(summaryRes.data.schemes) ? summaryRes.data.schemes : []);
+      } else {
+        setSchemes([]);
+      }
     } catch (err) {
+      console.error("Error loading dashboard:", err);
       setError(err.message);
+      setSchemes([]);
     } finally {
       setLoading(false);
     }
