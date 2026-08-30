@@ -16,14 +16,20 @@ export const Register = () => {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [registerMethod, setRegisterMethod] = useState('email');
 
   const validateForm = () => {
     const newErrors = {};
     if (!formData.fullName) newErrors.fullName = 'Full name is required';
     if (!formData.phone) newErrors.phone = 'Phone number is required';
-    if (!formData.password) newErrors.password = 'Password is required';
-    if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+
+    if (registerMethod === 'email') {
+      if (!formData.email) newErrors.email = 'Email is required';
+      if (!formData.password) newErrors.password = 'Password is required';
+      if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
+      if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
+    }
+
     if (!agreeTerms) newErrors.terms = 'You must agree to the terms';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -43,8 +49,21 @@ export const Register = () => {
 
     setLoading(true);
     try {
+      if (registerMethod === 'phone') {
+        const authService = (await import('../services/authService')).default;
+        await authService.sendPhoneOTP(formData.phone, formData.fullName);
+        navigate('/verify-otp', {
+          state: {
+            phone: formData.phone,
+            fullName: formData.fullName,
+            mode: 'phone-register'
+          }
+        });
+        return;
+      }
+
       await register(formData);
-      navigate('/verify-otp', { state: { phone: formData.phone } });
+      navigate('/app/onboarding');
     } catch (err) {
       setErrors({ submit: err.message });
     } finally {
@@ -84,6 +103,27 @@ export const Register = () => {
             </div>
           )}
 
+          <div className="flex rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setRegisterMethod('email')}
+              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+                registerMethod === 'email' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegisterMethod('phone')}
+              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+                registerMethod === 'phone' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              Phone
+            </button>
+          </div>
+
           <Input
             label="Full Name"
             placeholder="Enter your full name"
@@ -104,57 +144,63 @@ export const Register = () => {
             required
           />
 
-          <Input
-            label="Email (Optional)"
-            type="email"
-            placeholder="Enter your email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-          />
+          {registerMethod === 'email' && (
+            <>
+              <Input
+                label="Email"
+                type="email"
+                placeholder="Enter your email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={errors.email}
+                required
+              />
 
-          <div>
-            <Input
-              label="Password"
-              type="password"
-              placeholder="Create a strong password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              error={errors.password}
-              required
-            />
-            {formData.password && (
-              <div className="mt-2">
-                <div className="flex gap-1">
-                  {[0, 1, 2, 3].map(i => (
-                    <div
-                      key={i}
-                      className={`flex-1 h-1 rounded ${
-                        i < passwordStrength
-                          ? `bg-${strengthColor}-600`
-                          : 'bg-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <p className="text-xs text-gray-600 mt-1">
-                  Strength: <span className={`text-${strengthColor}-600 font-medium`}>{strengthLabel}</span>
-                </p>
+              <div>
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="Create a strong password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={errors.password}
+                  required
+                />
+                {formData.password && (
+                  <div className="mt-2">
+                    <div className="flex gap-1">
+                      {[0, 1, 2, 3].map(i => (
+                        <div
+                          key={i}
+                          className={`flex-1 h-1 rounded ${
+                            i < passwordStrength
+                              ? `bg-${strengthColor}-600`
+                              : 'bg-gray-300'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Strength: <span className={`text-${strengthColor}-600 font-medium`}>{strengthLabel}</span>
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <Input
-            label="Confirm Password"
-            type="password"
-            placeholder="Confirm your password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            error={errors.confirmPassword}
-            required
-          />
+              <Input
+                label="Confirm Password"
+                type="password"
+                placeholder="Confirm your password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                error={errors.confirmPassword}
+                required
+              />
+            </>
+          )}
 
           <label className="flex items-start gap-2">
             <input

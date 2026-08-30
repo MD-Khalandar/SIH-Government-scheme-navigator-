@@ -7,6 +7,8 @@ export const OTPVerification = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const phone = location.state?.phone || '';
+  const mode = location.state?.mode || 'email';
+  const fullName = location.state?.fullName || '';
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,18 @@ export const OTPVerification = () => {
     setLoading(true);
     setError('');
     try {
+      if (mode === 'phone-login') {
+        await authService.verifyPhoneLogin(otpValue);
+        navigate('/app/dashboard');
+        return;
+      }
+
+      if (mode === 'phone-register') {
+        await authService.verifyPhoneRegister({ otp: otpValue, fullName, phone });
+        navigate('/app/onboarding');
+        return;
+      }
+
       await authService.verifyOTP(otpValue);
       navigate('/app/onboarding');
     } catch (err) {
@@ -70,7 +84,11 @@ export const OTPVerification = () => {
   const handleResend = async () => {
     setLoading(true);
     try {
-      await authService.sendOTP(phone);
+      if (mode === 'phone-login' || mode === 'phone-register') {
+        await authService.sendPhoneOTP(phone, fullName);
+      } else {
+        await authService.sendOTP(phone);
+      }
       setTimeLeft(30);
       setCanResend(false);
       setError('');

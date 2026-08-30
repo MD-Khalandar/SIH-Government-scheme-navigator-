@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 import { Button, Input, Card } from '../components';
 
 export const Login = () => {
@@ -10,12 +11,12 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [useOTP, setUseOTP] = useState(false);
+  const [loginMethod, setLoginMethod] = useState('email');
 
   const validateForm = () => {
     const newErrors = {};
-    if (!emailOrPhone) newErrors.emailOrPhone = 'Email or phone is required';
-    if (!password) newErrors.password = 'Password is required';
+    if (!emailOrPhone) newErrors.emailOrPhone = loginMethod === 'email' ? 'Email is required' : 'Phone number is required';
+    if (loginMethod === 'email' && !password) newErrors.password = 'Password is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -26,8 +27,32 @@ export const Login = () => {
 
     setLoading(true);
     try {
+      if (loginMethod === 'phone') {
+        const authService = (await import('../services/authService')).default;
+        await authService.sendPhoneOTP(emailOrPhone);
+        navigate('/verify-otp', { state: { phone: emailOrPhone, mode: 'phone-login' } });
+        return;
+      }
+
       await login(emailOrPhone, password);
       navigate('/app/dashboard');
+    } catch (err) {
+      setErrors({ submit: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpLogin = async () => {
+    if (!emailOrPhone) {
+      setErrors({ emailOrPhone: 'Mobile number is required' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.sendOTP(emailOrPhone);
+      navigate('/verify-otp', { state: { phone: emailOrPhone } });
     } catch (err) {
       setErrors({ submit: err.message });
     } finally {
@@ -53,22 +78,46 @@ export const Login = () => {
             </div>
           )}
 
+          <div className="flex rounded-lg bg-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setLoginMethod('email')}
+              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+                loginMethod === 'email' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              Email
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginMethod('phone')}
+              className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+                loginMethod === 'phone' ? 'bg-white text-brand-blue shadow-sm' : 'text-gray-600'
+              }`}
+            >
+              Phone
+            </button>
+          </div>
+
           <Input
-            label="Email or Mobile Number"
-            placeholder="Enter your email or phone"
+            label={loginMethod === 'email' ? 'Email Address' : 'Phone Number'}
+            placeholder={loginMethod === 'email' ? 'Enter your email' : 'Enter your phone number'}
+            type={loginMethod === 'email' ? 'email' : 'tel'}
             value={emailOrPhone}
             onChange={(e) => setEmailOrPhone(e.target.value)}
             error={errors.emailOrPhone}
           />
 
-          <Input
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={errors.password}
-          />
+          {loginMethod === 'email' && (
+            <Input
+              label="Password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={errors.password}
+            />
+          )}
 
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2">
@@ -96,11 +145,20 @@ export const Login = () => {
           <Button
             variant="secondary"
             fullWidth
-            onClick={() => setUseOTP(!useOTP)}
+            onClick={() => {
+              setLoginMethod('phone');
+              setTimeout(() => document.querySelector('input[type="tel"]')?.focus(), 50);
+            }}
+            onClick={() => setUseOTP(true)}
             type="button"
           >
             Continue with Mobile OTP
           </Button>
+          {useOTP && (
+            <Button variant="ghost" fullWidth onClick={handleOtpLogin} loading={loading} type="button">
+              Send OTP to this mobile number
+            </Button>
+          )}
         </form>
 
         <div className="mt-6 text-center">
@@ -114,7 +172,7 @@ export const Login = () => {
 
         <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-gray-600">
-            <strong>Demo Credentials:</strong> Use any email/phone with password "demo123"
+            <strong>Firebase account:</strong> Use your email and password to continue.
           </p>
         </div>
       </Card>

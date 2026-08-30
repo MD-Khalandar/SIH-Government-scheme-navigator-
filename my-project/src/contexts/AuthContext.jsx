@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../../firebase';
 import authService from '../services/authService';
 
 const AuthContext = createContext();
@@ -9,12 +11,18 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const currentUser = authService.getCurrentUser();
-    if (currentUser) {
-      setUser(currentUser);
-    }
-    setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      const currentUser = authService.getCurrentUser();
+      setUser(currentUser || (firebaseUser ? {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || '',
+        email: firebaseUser.email || '',
+        phone: firebaseUser.phoneNumber || ''
+      } : null));
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (emailOrPhone, password) => {
@@ -47,10 +55,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-    setError(null);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } finally {
+      setUser(null);
+      setError(null);
+    }
   };
 
   const value = {
