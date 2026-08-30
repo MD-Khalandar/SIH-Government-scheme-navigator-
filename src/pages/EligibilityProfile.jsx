@@ -1,283 +1,162 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useProfile } from '../contexts/ProfileContext';
-import { Button, Input, Select, Card } from '../components';
+import { Navbar, Sidebar, Button, Input, Select } from '../components';
+import schemeService from '../services/schemeService';
 
 export const EligibilityProfile = () => {
   const navigate = useNavigate();
-  const { updateProfile } = useProfile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [eligibleSchemes, setEligibleSchemes] = useState(null);
+
+  const [profile, setProfile] = useState({
     age: '',
-    gender: '',
-    state: '',
-    district: '',
-    urban: '',
-    socialCategory: '',
-    disability: '',
     income: '',
-    bpl: '',
-    occupation: '',
-    studying: '',
-    lookingForWork: '',
-    ownLand: '',
-    landholding: '',
-    dependents: '',
-    children: '',
-    seniorCitizens: '',
-    ownHouse: '',
-    housingCondition: ''
+    gender: 'All',
+    caste: 'All',
+    state: 'All'
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleChange = (field, value) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleCheckEligibility = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const userProfile = {
+      age: Number(profile.age) || 0,
+      income: Number(profile.income) || 0,
+      gender: profile.gender,
+      caste: profile.caste,
+      state: profile.state
+    };
+
     try {
-      await updateProfile(formData);
-      navigate('/app/dashboard');
-    } catch (err) {
-      console.error(err);
+      const result = await schemeService.getEligibleSchemes(userProfile);
+      if (result.success) {
+        setEligibleSchemes(result.data);
+      }
+    } catch (error) {
+      console.error("Error evaluating eligibility:", error);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Eligibility Profile</h1>
-          <p className="text-lg text-gray-600">
-            We only ask for information needed to find relevant schemes.
-          </p>
-        </div>
+    <div className="flex min-h-screen">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col">
+        <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Eligibility Profile" />
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Information */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Basic Information</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input
-                label="Age"
-                type="number"
-                name="age"
-                value={formData.age}
-                onChange={handleChange}
-                placeholder="Enter your age"
-              />
-              <Select
-                label="Gender"
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                options={[
-                  { label: 'Male', value: 'male' },
-                  { label: 'Female', value: 'female' },
-                  { label: 'Other', value: 'other' },
-                  { label: 'Prefer not to say', value: 'prefer-not' }
-                ]}
-                placeholder="Select gender"
-              />
-              <Select
-                label="State"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                options={[
-                  { label: 'Karnataka', value: 'karnataka' },
-                  { label: 'Maharashtra', value: 'maharashtra' },
-                  { label: 'Delhi', value: 'delhi' },
-                  { label: 'Tamil Nadu', value: 'tamil-nadu' }
-                ]}
-                placeholder="Select your state"
-              />
-              <Select
-                label="Urban or Rural"
-                name="urban"
-                value={formData.urban}
-                onChange={handleChange}
-                options={[
-                  { label: 'Urban', value: 'urban' },
-                  { label: 'Rural', value: 'rural' }
-                ]}
-                placeholder="Select area type"
-              />
+        <main className="flex-1 bg-brand-bg p-6 md:p-12 overflow-auto">
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Check Your Scheme Eligibility</h1>
+              <p className="text-gray-600 mt-2">
+                Enter your demographic details to discover government benefits tailored specifically to you.
+              </p>
             </div>
-          </Card>
 
-          {/* Social Category */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Social Category</h2>
-            <Select
-              label="Category"
-              name="socialCategory"
-              value={formData.socialCategory}
-              onChange={handleChange}
-              options={[
-                { label: 'General', value: 'general' },
-                { label: 'OBC', value: 'obc' },
-                { label: 'SC', value: 'sc' },
-                { label: 'ST', value: 'st' },
-                { label: 'Prefer not to say', value: 'prefer-not' }
-              ]}
-              placeholder="Select category"
-            />
-          </Card>
+            {/* Profile Input Form */}
+            <form onSubmit={handleCheckEligibility} className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <Input
+                  label="Age"
+                  type="number"
+                  placeholder="e.g. 25"
+                  value={profile.age}
+                  onChange={(e) => handleChange('age', e.target.value)}
+                  required
+                />
+                <Input
+                  label="Annual Family Income (₹)"
+                  type="number"
+                  placeholder="e.g. 150000"
+                  value={profile.income}
+                  onChange={(e) => handleChange('income', e.target.value)}
+                  required
+                />
+              </div>
 
-          {/* Financial Information */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Financial Information</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Select
-                label="Household Annual Income"
-                name="income"
-                value={formData.income}
-                onChange={handleChange}
-                options={[
-                  { label: 'Below ₹1 lakh', value: 'below-1L' },
-                  { label: '₹1–2.5 lakh', value: '1L-2.5L' },
-                  { label: '₹2.5–5 lakh', value: '2.5L-5L' },
-                  { label: '₹5–10 lakh', value: '5L-10L' },
-                  { label: 'Above ₹10 lakh', value: 'above-10L' }
-                ]}
-                placeholder="Select income range"
-              />
-              <Select
-                label="BPL Status"
-                name="bpl"
-                value={formData.bpl}
-                onChange={handleChange}
-                options={[
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' },
-                  { label: 'Not sure', value: 'not-sure' }
-                ]}
-                placeholder="BPL / Priority household?"
-              />
-            </div>
-          </Card>
+              <div className="grid md:grid-cols-3 gap-4">
+                <Select
+                  label="Gender"
+                  value={profile.gender}
+                  onChange={(e) => handleChange('gender', e.target.value)}
+                  options={[
+                    { label: 'All / Any', value: 'All' },
+                    { label: 'Female', value: 'Female' },
+                    { label: 'Male', value: 'Male' },
+                    { label: 'Other', value: 'Other' }
+                  ]}
+                />
 
-          {/* Employment */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Employment</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Select
-                label="Occupation"
-                name="occupation"
-                value={formData.occupation}
-                onChange={handleChange}
-                options={[
-                  { label: 'Student', value: 'student' },
-                  { label: 'Farmer', value: 'farmer' },
-                  { label: 'Salaried', value: 'salaried' },
-                  { label: 'Self-employed', value: 'self-employed' },
-                  { label: 'Unemployed', value: 'unemployed' },
-                  { label: 'Homemaker', value: 'homemaker' },
-                  { label: 'Other', value: 'other' }
-                ]}
-                placeholder="Select occupation"
-              />
-              <Select
-                label="Currently Looking for Work?"
-                name="lookingForWork"
-                value={formData.lookingForWork}
-                onChange={handleChange}
-                options={[
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' }
-                ]}
-                placeholder="Looking for work?"
-              />
-            </div>
-          </Card>
+                <Select
+                  label="Category / Caste"
+                  value={profile.caste}
+                  onChange={(e) => handleChange('caste', e.target.value)}
+                  options={[
+                    { label: 'General / All', value: 'All' },
+                    { label: 'OBC', value: 'OBC' },
+                    { label: 'SC', value: 'SC' },
+                    { label: 'ST', value: 'ST' }
+                  ]}
+                />
 
-          {/* Family */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Family Information</h2>
-            <div className="grid md:grid-cols-3 gap-4">
-              <Input
-                label="Number of Dependents"
-                type="number"
-                name="dependents"
-                value={formData.dependents}
-                onChange={handleChange}
-                placeholder="0"
-              />
-              <Input
-                label="Number of Children"
-                type="number"
-                name="children"
-                value={formData.children}
-                onChange={handleChange}
-                placeholder="0"
-              />
-              <Input
-                label="Senior Citizens (60+)"
-                type="number"
-                name="seniorCitizens"
-                value={formData.seniorCitizens}
-                onChange={handleChange}
-                placeholder="0"
-              />
-            </div>
-          </Card>
+                <Select
+                  label="State"
+                  value={profile.state}
+                  onChange={(e) => handleChange('state', e.target.value)}
+                  options={[
+                    { label: 'All States / Pan-India', value: 'All' },
+                    { label: 'Karnataka', value: 'Karnataka' },
+                    { label: 'Maharashtra', value: 'Maharashtra' },
+                    { label: 'Delhi', value: 'Delhi' }
+                  ]}
+                />
+              </div>
 
-          {/* Housing */}
-          <Card>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Housing</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              <Select
-                label="Own a House?"
-                name="ownHouse"
-                value={formData.ownHouse}
-                onChange={handleChange}
-                options={[
-                  { label: 'Yes', value: 'yes' },
-                  { label: 'No', value: 'no' }
-                ]}
-                placeholder="Own a house?"
-              />
-              <Select
-                label="Housing Condition"
-                name="housingCondition"
-                value={formData.housingCondition}
-                onChange={handleChange}
-                options={[
-                  { label: 'Pucca', value: 'pucca' },
-                  { label: 'Semi-pucca', value: 'semi-pucca' },
-                  { label: 'Kutcha', value: 'kutcha' }
-                ]}
-                placeholder="Housing condition"
-              />
-            </div>
-          </Card>
+              <Button type="submit" fullWidth disabled={loading}>
+                {loading ? 'Evaluating Eligibility...' : 'Find Matching Schemes'}
+              </Button>
+            </form>
 
-          {/* Actions */}
-          <div className="flex gap-4">
-            <Button
-              variant="secondary"
-              onClick={() => navigate('/app/life-events')}
-              type="button"
-            >
-              Back
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              loading={loading}
-              className="ml-auto"
-            >
-              Find My Benefits
-            </Button>
+            {/* Results Display */}
+            {eligibleSchemes !== null && (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Matching Benefits ({eligibleSchemes.length})
+                </h2>
+
+                {eligibleSchemes.length === 0 ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                    <p className="text-yellow-800">
+                      No matching schemes found for the given criteria. Try adjusting your income or location parameters.
+                    </p>
+                  </div>
+                ) : (
+                  eligibleSchemes.map((scheme) => (
+                    <div key={scheme.id} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded font-semibold mb-2">
+                          {scheme.category || 'General'}
+                        </span>
+                        <h3 className="text-xl font-bold text-gray-900">{scheme.name}</h3>
+                        <p className="text-gray-600 mt-1 text-sm">{scheme.benefits}</p>
+                      </div>
+                      <Button onClick={() => navigate(`/app/schemes/${scheme.id}`)}>
+                        View Details & Apply
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
-        </form>
+        </main>
       </div>
     </div>
   );

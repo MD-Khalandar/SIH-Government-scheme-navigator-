@@ -1,9 +1,7 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProfileProvider } from './contexts/ProfileContext';
 import { ProtectedRoute } from './components';
-import { uploadJsonToFirebase } from './uploadJson';
 import {
   Landing,
   Login,
@@ -148,5 +146,4 @@ function App() {
   );
 }
 
-export default App;
-
+export default App

@@ -1,134 +1,128 @@
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where
-} from "firebase/firestore";
+// Scheme service - Mock implementation
+// Replace with actual API calls later
 
-import { db } from "../firebase";
+import { mockSchemes } from '../data/mockSchemes.js';
 
 export const schemeService = {
-
   // Get all schemes
   getSchemes: async () => {
-    const snapshot = await getDocs(collection(db, "schemes"));
-
-    const schemes = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    return {
-      success: true,
-      data: schemes
-    };
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return { success: true, data: mockSchemes };
   },
 
-  // Get one scheme
+  // Get scheme by ID
   getSchemeById: async (id) => {
-
-    const snap = await getDoc(doc(db, "schemes", id));
-
-    if (!snap.exists()) {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const scheme = mockSchemes.find(s => String(s.id) === String(id));
+    
+    if (!scheme) {
       throw new Error("Scheme not found");
     }
-
-    return {
-      success: true,
-      data: {
-        id: snap.id,
-        ...snap.data()
-      }
-    };
+    
+    return { success: true, data: scheme };
   },
 
-  // Search
-  searchSchemes: async (text) => {
-
-    const snapshot = await getDocs(collection(db, "schemes"));
-
-    const schemes = snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      .filter(s =>
-        s.name.toLowerCase().includes(text.toLowerCase())
-      );
-
-    return {
-      success: true,
-      data: schemes
-    };
+  // Search schemes
+  searchSchemes: async (query) => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    const searchQuery = query.toLowerCase();
+    const results = mockSchemes.filter(scheme => 
+      scheme.name.toLowerCase().includes(searchQuery) ||
+      scheme.description.toLowerCase().includes(searchQuery) ||
+      scheme.category.toLowerCase().includes(searchQuery) ||
+      scheme.ministry.toLowerCase().includes(searchQuery)
+    );
+    
+    return { success: true, data: results };
   },
 
-  // Filter by category
+  // Filter schemes
   filterSchemes: async (filters) => {
-
-    let q = collection(db, "schemes");
-
-    if (filters.category && filters.category !== "all") {
-      q = query(
-        q,
-        where("category", "==", filters.category)
-      );
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    let results = mockSchemes;
+    
+    if (filters.state && filters.state !== "all") {
+      results = results.filter(s => s.state === filters.state || s.state === "All India");
     }
+    
+    if (filters.category && filters.category !== "all") {
+      results = results.filter(s => s.category === filters.category);
+    }
+    
+    if (filters.ministry && filters.ministry !== "all") {
+      results = results.filter(s => s.ministry === filters.ministry);
+    }
+    
+    if (filters.lifeEvent && filters.lifeEvent !== "all") {
+      results = results.filter(s => s.lifeEvents.includes(filters.lifeEvent));
+    }
+    
+    return { success: true, data: results };
+  },
 
-    const snapshot = await getDocs(q);
+  // Get schemes by life event
+  getSchemesByLifeEvent: async (lifeEvent) => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    const results = mockSchemes.filter(scheme => 
+      scheme.lifeEvents.includes(lifeEvent)
+    );
+    
+    return { success: true, data: results };
+  },
 
-    const schemes = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+  // Get saved schemes for user
+  getSavedSchemes: async () => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const saved = localStorage.getItem("sahayak_saved_schemes");
+    if (!saved) {
+      return { success: true, data: [] };
+    }
+    
+    const savedIds = JSON.parse(saved);
+    const savedSchemes = mockSchemes.filter(s => savedIds.includes(s.id));
+    
+    return { success: true, data: savedSchemes };
+  },
 
-    return {
-      success: true,
-      data: schemes
-    };
+  // Save a scheme
+  saveScheme: async (schemeId) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const saved = localStorage.getItem("sahayak_saved_schemes");
+    let savedIds = saved ? JSON.parse(saved) : [];
+    
+    if (!savedIds.includes(schemeId)) {
+      savedIds.push(schemeId);
+      localStorage.setItem("sahayak_saved_schemes", JSON.stringify(savedIds));
+    }
+    
+    return { success: true };
+  },
+
+  // Remove saved scheme
+  removeSavedScheme: async (schemeId) => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    const saved = localStorage.getItem("sahayak_saved_schemes");
+    if (saved) {
+      const savedIds = JSON.parse(saved).filter(id => id !== schemeId);
+      localStorage.setItem("sahayak_saved_schemes", JSON.stringify(savedIds));
+    }
+    
+    return { success: true };
+  },
+
+  // Check if scheme is saved
+  isSchemeSaved: async (schemeId) => {
+    const saved = localStorage.getItem("sahayak_saved_schemes");
+    if (!saved) return false;
+    return JSON.parse(saved).includes(schemeId);
   }
-
 };
 
 export default schemeService;
-
-// Match Schemes by Citizen Profile (Eligibility Engine)
-  getEligibleSchemes: async (userProfile) => {
-    // userProfile = { age: 25, income: 150000, gender: "Female", caste: "OBC", state: "Karnataka" }
-    
-    // 1. Fetch all schemes from Firebase
-    const snapshot = await getDocs(collection(db, "schemes"));
-    
-    const allSchemes = snapshot.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    }));
-
-    // 2. Filter schemes according to citizen criteria
-    const eligible = allSchemes.filter(scheme => {
-      const matchAge = (!scheme.minAge || userProfile.age >= scheme.minAge) &&
-                       (!scheme.maxAge || userProfile.age <= scheme.maxAge);
-                       
-      const matchIncome = !scheme.maxIncome || userProfile.income <= scheme.maxIncome;
-
-      const matchGender = !scheme.targetGender || 
-                          scheme.targetGender === "All" || 
-                          scheme.targetGender === userProfile.gender;
-
-      const matchState = !scheme.state || 
-                         scheme.state === "All" || 
-                         scheme.state === userProfile.state;
-
-      const matchCaste = !scheme.caste || 
-                         scheme.caste.includes("All") || 
-                         scheme.caste.includes(userProfile.caste);
-
-      return matchAge && matchIncome && matchGender && matchState && matchCaste;
-    });
-
-    return {
-      success: true,
-      data: eligible
-    };
-  } I think I can do it.

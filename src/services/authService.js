@@ -1,162 +1,234 @@
-// Authentication service - Mock implementation
-// Replace with actual API calls later
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPhoneNumber,
+  signOut,
+  sendPasswordResetEmail,
+  updateProfile,
+  RecaptchaVerifier
+} from 'firebase/auth';
+import { auth } from '../../firebase';
 
-const MOCK_USER = {
-  id: 1,
-  name: "Rajesh Kumar",
-  email: "rajesh@example.com",
-  phone: "+91 98765 43210"
+let recaptchaVerifier = null;
+let pendingPhoneConfirmation = null;
+
+const getConfiguredAuth = () => {
+  if (!auth) {
+    throw new Error('Firebase is not configured. Add valid VITE_FIREBASE_* values to .env.local and restart the dev server.');
+  }
+  return auth;
 };
 
-const DEMO_OTP = "123456";
+const normalizePhoneNumber = (phone) => {
+  if (!phone) return '';
+  const cleaned = phone.replace(/\D/g, '');
+  if (!cleaned) return '';
+  return cleaned.startsWith('91') ? `+${cleaned}` : `+91${cleaned}`;
+};
+
+const ensureRecaptcha = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (recaptchaVerifier) {
+    recaptchaVerifier.clear();
+    recaptchaVerifier = null;
+  }
+
+  let container = document.getElementById('recaptcha-container');
+  if (container) {
+    container.remove();
+  }
+
+  container = document.createElement('div');
+  container.id = 'recaptcha-container';
+  container.style.display = 'none';
+  document.body.appendChild(container);
+
+  recaptchaVerifier = new RecaptchaVerifier(getConfiguredAuth(), 'recaptcha-container', {
+    size: 'invisible',
+    callback: () => {},
+    'expired-callback': () => {
+      recaptchaVerifier = null;
+    }
+  });
+
+  return recaptchaVerifier;
+};
+
+const mapFirebaseUser = (firebaseUser, fallback = null) => {
+  if (!firebaseUser) return null;
+
+  return {
+    id: firebaseUser.uid,
+    name: firebaseUser.displayName || fallback?.name || '',
+    email: firebaseUser.email || fallback?.email || '',
+    phone: fallback?.phone || firebaseUser.phoneNumber || ''
+  };
+};
+
+const storeCurrentUser = (user) => {
+  if (!user) {
+    localStorage.removeItem('sahayak_user');
+    localStorage.removeItem('sahayak_token');
+    return;
+  }
+
+  localStorage.setItem('sahayak_user', JSON.stringify(user));
+  localStorage.setItem('sahayak_token', auth?.currentUser?.accessToken || 'firebase-phone-auth');
+};
 
 export const authService = {
-  // Register a new user
   register: async (data) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Validate input
-    if (!data.fullName || !data.phone || !data.password) {
-      throw new Error("All fields are required");
+    if (!data?.fullName || !data?.email || !data?.phone || !data?.password) {
+      throw new Error('Full name, email, phone, and password are required');
+    }
+
+    if (!data.email.includes('@')) {
+      throw new Error('Please enter a valid email address');
     }
 
     if (data.password !== data.confirmPassword) {
-      throw new Error("Passwords do not match");
+      throw new Error('Passwords do not match');
     }
 
     if (data.password.length < 6) {
-      throw new Error("Password must be at least 6 characters");
+      throw new Error('Password must be at least 6 characters');
     }
 
-    // Store in localStorage (for demo only)
-    const user = {
-      id: Date.now(),
-      name: data.fullName,
-      email: data.email || "",
-      phone: data.phone,
-      createdAt: new Date().toISOString()
-    };
+    const userCredential = await createUserWithEmailAndPassword(
+      getConfiguredAuth(),
+      data.email.trim(),
+      data.password
+    );
 
-    localStorage.setItem("sahayak_user", JSON.stringify(user));
-    localStorage.setItem("sahayak_token", `token_${user.id}`);
+    await updateProfile(userCredential.user, {
+      displayName: data.fullName.trim()
+    });
+
+    const user = mapFirebaseUser(userCredential.user, {
+      name: data.fullName.trim(),
+      email: data.email.trim(),
+      phone: data.phone.trim()
+    });
+
+    storeCurrentUser(user);
 
     return { success: true, user };
   },
 
-  // Login user
   login: async (emailOrPhone, password) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     if (!emailOrPhone || !password) {
-      throw new Error("Email/Phone and password are required");
+      throw new Error('Email and password are required');
     }
 
-    // Mock validation
-    if (password !== "demo123") {
-      throw new Error("Invalid credentials");
+    const email = emailOrPhone.trim();
+    if (!email.includes('@')) {
+      throw new Error('Please use your email address to sign in');
     }
 
-    localStorage.setItem("sahayak_user", JSON.stringify(MOCK_USER));
-    localStorage.setItem("sahayak_token", `token_${MOCK_USER.id}`);
+    const userCredential = await signInWithEmailAndPassword(getConfiguredAuth(), email, password);
+    const user = mapFirebaseUser(userCredential.user);
 
-    return { success: true, user: MOCK_USER };
+    storeCurrentUser(user);
+
+    return { success: true, user };
   },
 
-  // Send OTP
+  sendPhoneOTP: async (phone) => {
+    const normalizedPhone = normalizePhoneNumber(phone);
+    if (!normalizedPhone) {
+      throw new Error('Phone number is required');
+    }
+
+    const verifier = ensureRecaptcha();
+    if (!verifier) {
+      throw new Error('Phone authentication is not available in this browser');
+    }
+
+    pendingPhoneConfirmation = await signInWithPhoneNumber(getConfiguredAuth(), normalizedPhone, verifier);
+
+    return { success: true, message: `OTP sent to ${normalizedPhone}` };
+  },
+
+  verifyPhoneLogin: async (otp) => {
+    if (!pendingPhoneConfirmation) {
+      throw new Error('No active phone verification session found');
+    }
+
+    const credential = await pendingPhoneConfirmation.confirm(otp);
+    const user = mapFirebaseUser(credential.user);
+
+    storeCurrentUser(user);
+    pendingPhoneConfirmation = null;
+    return { success: true, user };
+  },
+
+  verifyPhoneRegister: async ({ otp, fullName, phone }) => {
+    if (!pendingPhoneConfirmation) {
+      throw new Error('No active phone registration session found');
+    }
+
+    const credential = await pendingPhoneConfirmation.confirm(otp);
+    const user = credential.user;
+
+    if (fullName) {
+      await updateProfile(user, { displayName: fullName.trim() });
+    }
+
+    const finalUser = mapFirebaseUser(user, {
+      name: fullName || '',
+      email: user.email || '',
+      phone: phone || normalizePhoneNumber(phone)
+    });
+
+    storeCurrentUser(finalUser);
+    pendingPhoneConfirmation = null;
+    return { success: true, user: finalUser };
+  },
+
   sendOTP: async (phone) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    if (!phone) {
-      throw new Error("Phone number is required");
-    }
-
-    // Mock OTP storage
-    localStorage.setItem("sahayak_otp_phone", phone);
-    localStorage.setItem("sahayak_otp", DEMO_OTP);
-    localStorage.setItem("sahayak_otp_sent_time", Date.now().toString());
-
-    return { success: true, message: `OTP sent to ${phone}` };
+    return authService.sendPhoneOTP(phone);
   },
 
-  // Verify OTP
-  verifyOTP: async (otp) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-
-    if (!otp) {
-      throw new Error("OTP is required");
+  forgotPassword: async (email) => {
+    if (!email || !email.includes('@')) {
+      throw new Error('Email is required');
     }
-
-    const storedOTP = localStorage.getItem("sahayak_otp");
-    if (otp !== storedOTP) {
-      throw new Error("Invalid OTP");
-    }
-
-    // Clear OTP
-    localStorage.removeItem("sahayak_otp");
-    localStorage.removeItem("sahayak_otp_phone");
-
-    return { success: true, message: "OTP verified successfully" };
+    await sendPasswordResetEmail(getConfiguredAuth(), email.trim());
+    return { success: true, message: `Password reset link sent to ${email}` };
   },
 
-  // Forgot password - Send OTP
-  forgotPassword: async (emailOrPhone) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    if (!emailOrPhone) {
-      throw new Error("Email or phone is required");
-    }
-
-    localStorage.setItem("sahayak_reset_contact", emailOrPhone);
-    localStorage.setItem("sahayak_reset_otp", DEMO_OTP);
-
-    return { success: true, message: `Reset code sent to ${emailOrPhone}` };
-  },
-
-  // Reset password
-  resetPassword: async (newPassword, confirmPassword) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    if (!newPassword || !confirmPassword) {
-      throw new Error("Passwords are required");
-    }
-
-    if (newPassword !== confirmPassword) {
-      throw new Error("Passwords do not match");
-    }
-
-    if (newPassword.length < 6) {
-      throw new Error("Password must be at least 6 characters");
-    }
-
-    localStorage.removeItem("sahayak_reset_contact");
-    localStorage.removeItem("sahayak_reset_otp");
-
-    return { success: true, message: "Password reset successfully" };
-  },
-
-  // Get current user
   getCurrentUser: () => {
-    const userJson = localStorage.getItem("sahayak_user");
-    const token = localStorage.getItem("sahayak_token");
-    
-    if (userJson && token) {
-      return JSON.parse(userJson);
+    if (auth?.currentUser) {
+      return mapFirebaseUser(auth.currentUser);
     }
+
     return null;
   },
 
-  // Check if user is authenticated
   isAuthenticated: () => {
-    return !!localStorage.getItem("sahayak_token");
+    return !!auth?.currentUser;
   },
 
-  // Logout
-  logout: () => {
-    localStorage.removeItem("sahayak_user");
-    localStorage.removeItem("sahayak_token");
-    localStorage.removeItem("sahayak_profile");
+  logout: async () => {
+    try {
+      if (auth) await signOut(auth);
+    } catch (error) {
+      console.warn('Firebase sign-out warning:', error);
+    }
+
+    localStorage.removeItem('sahayak_user');
+    localStorage.removeItem('sahayak_token');
+    localStorage.removeItem('sahayak_profile');
+    pendingPhoneConfirmation = null;
+
+    if (recaptchaVerifier) {
+      recaptchaVerifier.clear();
+      recaptchaVerifier = null;
+    }
+
     return { success: true };
   }
 };

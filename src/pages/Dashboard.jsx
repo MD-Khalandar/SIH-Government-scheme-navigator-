@@ -5,7 +5,7 @@ import { useProfile } from '../contexts/ProfileContext';
 import { Navbar, Sidebar, StatCard, SchemeCard, LoadingState, EmptyState } from '../components';
 import { schemeService } from '../services/schemeService';
 import { eligibilityService } from '../services/eligibilityService';
-import { Gift, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Gift, FileText, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { formatCurrency } from '../utils/formatters';
 
 export const Dashboard = () => {
@@ -27,14 +27,10 @@ export const Dashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      // Load schemes
       const schemesRes = await schemeService.getSchemes();
-      
-      // Load saved schemes
       const savedRes = await schemeService.getSavedSchemes();
       setSavedSchemes(savedRes.data.map(s => s.id));
 
-      // Get user profile data for eligibility matching
       const userProfile = {
         age: profile?.age || null,
         gender: profile?.gender || null,
@@ -48,7 +44,6 @@ export const Dashboard = () => {
         disabilityPercentage: profile?.disability === 'yes' ? 40 : 0
       };
 
-      // Get eligibility summary
       const summaryRes = await eligibilityService.getEligibilitySummary(userProfile, schemesRes.data);
       setSummary(summaryRes.data);
       setSchemes(summaryRes.data.schemes);
@@ -75,12 +70,12 @@ export const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex">
+      <div className="flex min-h-screen w-full bg-[#c9f3ce]">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <div className="flex-1 flex flex-col">
           <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-          <div className="flex-1">
-            <LoadingState message="Loading your benefits..." />
+          <div className="flex-1 flex items-center justify-center">
+            <LoadingState message="Matching optimal citizen benefits..." />
           </div>
         </div>
       </div>
@@ -88,89 +83,94 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Navbar title="Dashboard" onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-
-        <main className="flex-1 bg-brand-bg overflow-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
+          <div className="w-full">
             {/* Greeting */}
-            <div className="mb-12">
-              <h1 className="text-3xl font-bold text-gray-900">
-                Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {user?.name?.split(' ')[0]}
+            <div className="mb-10">
+              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Overview</span>
+              <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1">
+                Good {new Date().getHours() < 12 ? 'morning' : 'afternoon'}, {user?.name?.split(' ')[0] || 'Citizen'}
               </h1>
-              <p className="text-lg text-gray-600 mt-2">
-                Here are the benefits Sahayak found for you.
+              <p className="text-sm sm:text-base text-[#14341e]/70 font-light mt-1">
+                Here are the benefits matched to your demographic profile.
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg mb-8">
+              <div className="bg-rose-50/80 border border-rose-200 text-rose-800 text-xs px-5 py-3 rounded-2xl mb-8">
                 {error}
               </div>
             )}
 
-            {/* Summary Cards */}
+            {/* Metric Capsules */}
             {summary && (
-              <div className="grid md:grid-cols-4 gap-6 mb-12">
-                <StatCard
-                  label="Potentially Eligible"
-                  value={summary.highMatch}
-                  icon={CheckCircle2}
-                  color="green"
-                />
-                <StatCard
-                  label="Needs More Info"
-                  value={summary.needsMore}
-                  icon={AlertCircle}
-                  color="yellow"
-                />
-                <StatCard
-                  label="Total Schemes"
-                  value={summary.totalSchemes}
-                  icon={Gift}
-                  color="blue"
-                />
-                <StatCard
-                  label="Potential Benefit"
-                  value={formatCurrency(summary.potentialBenefit)}
-                  icon={FileText}
-                  color="purple"
-                  trend="Demo data only"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-[#177e4f] mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Potentially Eligible</span>
+                    <CheckCircle2 size={18} />
+                  </div>
+                  <p className="text-3xl font-light text-[#14341e]">{summary.highMatch}</p>
+                </div>
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-amber-700 mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Needs More Info</span>
+                    <AlertCircle size={18} />
+                  </div>
+                  <p className="text-3xl font-light text-[#14341e]">{summary.needsMore}</p>
+                </div>
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-[#177e4f] mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Total Schemes</span>
+                    <Gift size={18} />
+                  </div>
+                  <p className="text-3xl font-light text-[#14341e]">{summary.totalSchemes}</p>
+                </div>
+                <div className="p-6 rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 shadow-sm">
+                  <div className="flex items-center justify-between text-[#177e4f] mb-3">
+                    <span className="text-xs font-light text-[#14341e]/60">Potential Benefit</span>
+                    <FileText size={18} />
+                  </div>
+                  <p className="text-3xl font-light text-[#14341e]">{formatCurrency(summary.potentialBenefit)}</p>
+                </div>
               </div>
             )}
 
-            {/* Important Note */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-12">
-              <p className="text-sm text-amber-800">
-                <strong>Important:</strong> These are demo schemes for demonstration purposes. The potential benefit values shown are examples and do not represent actual government commitments. Final eligibility is determined by the respective government authorities.
+            {/* Disclaimer */}
+            <div className="rounded-2xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-4 mb-10">
+              <p className="text-xs text-[#14341e]/70 font-light leading-relaxed">
+                Demo simulation for demonstration purposes. Computed eligibility values indicate rule matches and do not represent final statutory allocations.
               </p>
             </div>
 
-            {/* Top Matches */}
+            {/* Schemes List */}
             <div>
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">Your Top Matches</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl sm:text-2xl font-light text-[#14341e]">Your Top Matches</h2>
                 <button
                   onClick={() => navigate('/app/my-benefits')}
-                  className="text-brand-blue hover:text-brand-navy font-semibold"
+                  className="text-xs font-light text-[#177e4f] hover:text-[#14341e] transition"
                 >
                   View All →
                 </button>
               </div>
 
               {schemes.length === 0 ? (
-                <EmptyState
-                  icon={Gift}
-                  title="No schemes matched"
-                  description="Update your profile to find more relevant schemes"
-                  action={() => navigate('/app/profile')}
-                  actionLabel="Update Profile"
-                />
+                <div className="rounded-3xl bg-white/40 backdrop-blur-xl border border-white/70 p-12 text-center">
+                  <EmptyState
+                    icon={Gift}
+                    title="No schemes matched"
+                    description="Update your profile to expand your matches"
+                    action={() => navigate('/app/profile')}
+                    actionLabel="Update Profile"
+                  />
+                </div>
               ) : (
-                <div className="grid gap-6">
+                <div className="grid gap-5">
                   {schemes.slice(0, 3).map(scheme => (
                     <SchemeCard
                       key={scheme.id}
