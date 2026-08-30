@@ -4,9 +4,7 @@ import {
   signInWithPhoneNumber,
   signOut,
   updateProfile,
-  RecaptchaVerifier,
-  PhoneAuthProvider,
-  linkWithCredential
+  RecaptchaVerifier
 } from 'firebase/auth';
 import { auth } from '../../firebase';
 

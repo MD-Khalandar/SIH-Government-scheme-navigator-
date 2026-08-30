@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import authService from '../services/authService';
 import { Button, Input, Card } from '../components';
 
 export const Login = () => {
@@ -35,6 +36,23 @@ export const Login = () => {
 
       await login(emailOrPhone, password);
       navigate('/app/dashboard');
+    } catch (err) {
+      setErrors({ submit: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpLogin = async () => {
+    if (!emailOrPhone) {
+      setErrors({ emailOrPhone: 'Mobile number is required' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.sendOTP(emailOrPhone);
+      navigate('/verify-otp', { state: { phone: emailOrPhone } });
     } catch (err) {
       setErrors({ submit: err.message });
     } finally {
@@ -131,10 +149,16 @@ export const Login = () => {
               setLoginMethod('phone');
               setTimeout(() => document.querySelector('input[type="tel"]')?.focus(), 50);
             }}
+            onClick={() => setUseOTP(true)}
             type="button"
           >
             Continue with Mobile OTP
           </Button>
+          {useOTP && (
+            <Button variant="ghost" fullWidth onClick={handleOtpLogin} loading={loading} type="button">
+              Send OTP to this mobile number
+            </Button>
+          )}
         </form>
 
         <div className="mt-6 text-center">
