@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Navbar, Sidebar } from '../components';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Sparkles } from 'lucide-react';
+import './Dashboard.css';
 
 const faqs = [
   {
@@ -30,33 +31,38 @@ export const Help = () => {
   const [expandedId, setExpandedId] = useState(null);
 
   return (
-    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
+    <div className="dashboard-page-canvas flex min-h-screen w-full font-dashboard selection:bg-[#2fe066] selection:text-[#061b0d] relative overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 z-10">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Help & FAQ" />
         <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
-          <div className="w-full">
-            <div className="mb-10">
-              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Documentation</span>
-              <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1">Frequently Asked Questions</h1>
+          <div className="mx-auto max-w-6xl">
+            <div className="dashboard-greeting mb-8 sm:mb-10">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#177e4f]/15 text-[#061b0d] text-xs font-bold uppercase tracking-wider border border-[#177e4f]/25 mb-3">
+                <Sparkles size={14} className="text-[#177e4f]" />
+                <span>Documentation</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b0d] tracking-tight">
+                Frequently Asked Questions
+              </h1>
             </div>
 
             <div className="space-y-4 mb-10">
               {faqs.map(faq => (
                 <div
                   key={faq.id}
-                  className="rounded-2xl bg-white/50 backdrop-blur-md border border-white/70 p-6 transition cursor-pointer hover:bg-white/70"
+                  className="rounded-[1.5rem] bg-white/55 border border-[#a8d2b5] p-6 transition cursor-pointer shadow-sm shadow-[#177e4f]/5 hover:bg-white/70"
                   onClick={() => setExpandedId(expandedId === faq.id ? null : faq.id)}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <h3 className="text-sm sm:text-base font-normal text-[#14341e]">{faq.question}</h3>
+                    <h3 className="text-sm sm:text-base font-bold text-[#061b0d]">{faq.question}</h3>
                     <ChevronDown
                       size={18}
                       className={`text-[#177e4f] transition-transform duration-200 flex-shrink-0 ${expandedId === faq.id ? 'rotate-180' : ''}`}
                     />
                   </div>
                   {expandedId === faq.id && (
-                    <p className="text-xs sm:text-sm text-[#14341e]/70 font-light mt-4 leading-relaxed border-t border-[#a9c7b1]/30 pt-4">
+                    <p className="text-xs sm:text-sm text-[#0a2e14]/75 font-medium mt-4 leading-relaxed border-t border-[#a8d2b5] pt-4">
                       {faq.answer}
                     </p>
                   )}
@@ -64,9 +70,9 @@ export const Help = () => {
               ))}
             </div>
 
-            <div className="rounded-3xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-6">
-              <h2 className="text-sm font-normal text-[#14341e] mb-1">Public Demonstration Notice</h2>
-              <p className="text-xs text-[#14341e]/70 font-light leading-relaxed">
+            <div className="rounded-[2rem] border border-[#a8d2b5] bg-white/55 p-6 shadow-sm shadow-[#177e4f]/5">
+              <h2 className="text-sm font-bold text-[#061b0d] mb-1">Public Demonstration Notice</h2>
+              <p className="text-xs text-[#0a2e14]/75 font-medium leading-relaxed">
                 Platform engineered for the Smart India Hackathon. Scheme definitions, rulesets, and calculation matrices illustrate system capabilities and do not represent verified governmental commitments.
               </p>
             </div>

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../contexts/ProfileContext';
 import { Navbar, Sidebar, Input, Select } from '../components';
+import { Sparkles } from 'lucide-react';
+import './Dashboard.css';
 
 const buildFormData = (profile = {}) => ({
   age: profile.age ?? '',
@@ -65,20 +67,25 @@ export const Profile = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#c9f3ce] text-[#14341e] font-sans selection:bg-[#4ae278] selection:text-[#14341e]">
+    <div className="dashboard-page-canvas flex min-h-screen w-full font-dashboard selection:bg-[#2fe066] selection:text-[#061b0d] relative overflow-x-hidden">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 z-10">
         <Navbar onMenuClick={() => setSidebarOpen(!sidebarOpen)} title="Profile & Settings" />
         <main className="flex-1 overflow-auto px-6 sm:px-12 lg:px-20 xl:px-28 py-10">
-          <div className="w-full">
-            <div className="mb-10">
-              <span className="text-xs font-mono uppercase tracking-widest text-[#177e4f]">Parameters</span>
-              <h1 className="text-3xl sm:text-4xl font-light text-[#14341e] tracking-tight mt-1">Account & Settings</h1>
+          <div className="mx-auto max-w-6xl">
+            <div className="dashboard-greeting mb-8 sm:mb-10">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#177e4f]/15 text-[#061b0d] text-xs font-bold uppercase tracking-wider border border-[#177e4f]/25 mb-3">
+                <Sparkles size={14} className="text-[#177e4f]" />
+                <span>Parameters</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-[#061b0d] tracking-tight">
+                Account & Settings
+              </h1>
             </div>
 
-            <div className="rounded-3xl bg-white/50 backdrop-blur-md border border-white/80 p-6 sm:p-8 mb-6 shadow-sm">
+            <div className="rounded-[2rem] border border-[#a8d2b5] bg-white/55 p-6 sm:p-8 mb-6 shadow-sm shadow-[#177e4f]/5">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base sm:text-lg font-normal text-[#14341e]">Personal Record</h2>
+                <h2 className="text-base sm:text-lg font-bold text-[#061b0d]">Personal Record</h2>
                 {!isEditing && (
                   <button
                     onClick={() => setIsEditing(true)}
@@ -153,13 +160,13 @@ export const Profile = () => {
               )}
             </div>
 
-            <div className="rounded-3xl bg-white/30 backdrop-blur-sm border border-[#a9c7b1]/40 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <p className="text-xs text-[#14341e]/70 font-light">
+            <div className="rounded-[2rem] border border-[#a8d2b5] bg-white/55 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm shadow-[#177e4f]/5">
+              <p className="text-xs text-[#0a2e14]/75 font-medium">
                 Session state is isolated locally. Revoking credentials clears browser storage.
               </p>
               <button
                 onClick={handleLogout}
-                className="px-5 py-2 rounded-full bg-rose-700/80 hover:bg-rose-800 text-white text-xs font-light transition"
+                className="px-5 py-2 rounded-full bg-[#061b0d] hover:bg-[#177e4f] text-[#c9f3ce] hover:text-white text-xs font-bold uppercase tracking-wider transition"
               >
                 Terminate Session
               </button>
